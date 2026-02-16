@@ -246,9 +246,9 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
 .traffic-light {
   display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle;
 }
-.tl-green { background: #444; }
-.tl-yellow { background: #999; }
-.tl-red { background: #bbb; }
+.tl-green { background: #27ae60; }
+.tl-yellow { background: #f1c40f; }
+.tl-red { background: #c0392b; }
 .tl-grey { background: #ccc; }
 .portfolio-legend { display: flex; gap: 16px; margin-top: 10px; font-size: 0.72rem; color: #888; flex-wrap: wrap; }
 .portfolio-legend span { display: inline-flex; align-items: center; gap: 4px; }
@@ -896,10 +896,10 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
         <div style="background:#f5f5f5;border-radius:8px;padding:14px;">
           <div style="font-weight:700;margin-bottom:6px;">Confidence levels</div>
           <div style="color:#555;line-height:1.7;">
-            <span style="display:inline-block;width:10px;height:10px;background:#bbb;border-radius:2px;margin-right:4px;vertical-align:middle;"></span> <strong>50%</strong> &mdash; coin flip, too risky for commitments<br>
-            <span style="display:inline-block;width:10px;height:10px;background:#999;border-radius:2px;margin-right:4px;vertical-align:middle;"></span> <strong>70%</strong> &mdash; probable, good for internal targets<br>
-            <span style="display:inline-block;width:10px;height:10px;background:#666;border-radius:2px;margin-right:4px;vertical-align:middle;"></span> <strong>85%</strong> &mdash; recommended for commitments<br>
-            <span style="display:inline-block;width:10px;height:10px;background:#333;border-radius:2px;margin-right:4px;vertical-align:middle;"></span> <strong>95%</strong> &mdash; high confidence, conservative
+            <span style="display:inline-block;width:10px;height:10px;background:#c0392b;border-radius:2px;margin-right:4px;vertical-align:middle;"></span> <strong style="color:#c0392b;">50%</strong> &mdash; coin flip, too risky for commitments<br>
+            <span style="display:inline-block;width:10px;height:10px;background:#e67e22;border-radius:2px;margin-right:4px;vertical-align:middle;"></span> <strong style="color:#e67e22;">70%</strong> &mdash; probable, good for internal targets<br>
+            <span style="display:inline-block;width:10px;height:10px;background:#f1c40f;border-radius:2px;margin-right:4px;vertical-align:middle;"></span> <strong style="color:#b8960b;">85%</strong> &mdash; recommended for commitments<br>
+            <span style="display:inline-block;width:10px;height:10px;background:#27ae60;border-radius:2px;margin-right:4px;vertical-align:middle;"></span> <strong style="color:#27ae60;">95%</strong> &mdash; high confidence, conservative
           </div>
         </div>
         <div style="background:#f5f5f5;border-radius:8px;padding:14px;">
@@ -1212,7 +1212,7 @@ function updateOutcome() {
   const wip = parseInt(wipSlider.value);
   if (tp.length === 0) { $('#outcomeNote').innerHTML = ''; return; }
   const dq = dataQuality(tp.length);
-  const dqColor = dq >= 85 ? '#333' : dq >= 70 ? '#888' : '#bbb';
+  const dqColor = dq >= 85 ? '#27ae60' : dq >= 70 ? '#e67e22' : '#c0392b';
   const dqTip = dq >= 85 ? 'Good — your sample reliably represents the team\'s throughput patterns.' : dq >= 70 ? 'Decent — consider adding more data points to improve forecast reliability.' : 'Weak — with few samples, the simulation may miss important throughput variations (e.g. holidays, incidents). Aim for 8+ iterations of history.';
   $('#outcomeNote').innerHTML = `Data quality: <strong style="color:${dqColor}">${dq.toFixed(0)}%</strong> (${tp.length} samples) <span class="info-tip" style="position:relative;top:-1px;">?<span class="tip-text">Measures how representative your throughput sample is, using the formula (n&minus;1)/(n+1). More historical data points = better capture of real-world variation (zero-throughput weeks, holidays, incidents). Aim for 8+ iterations. ${dqTip}</span></span>`;
 }
@@ -1510,7 +1510,7 @@ function drawBurndown(canvas, paths, totalRemaining, confidenceWeeks, xAxisLabel
   ctx.globalAlpha = 1;
 
   // Confidence markers at y=0
-  const lineColors = { 50: '#bbb', 70: '#999', 85: '#666', 95: '#333' };
+  const lineColors = { 50: '#c0392b', 70: '#e67e22', 85: '#f1c40f', 95: '#27ae60' };
   Object.entries(confidenceWeeks).forEach(([p, wk]) => {
     const x = xScale(wk);
     ctx.strokeStyle = lineColors[p] || '#888';
@@ -1568,7 +1568,7 @@ function drawBuildup(canvas, paths, maxItems, confidenceIters, xAxisLabel) {
   ctx.globalAlpha = 1;
 
   // Confidence markers at final iteration
-  const lineColors = { 50: '#bbb', 70: '#999', 85: '#666', 95: '#333' };
+  const lineColors = { 50: '#c0392b', 70: '#e67e22', 85: '#f1c40f', 95: '#27ae60' };
   Object.entries(confidenceIters).forEach(([p, val]) => {
     const y = yScale(val);
     ctx.strokeStyle = lineColors[p] || '#888';
@@ -1697,7 +1697,7 @@ function drawHistogram(canvas, sortedData, confidenceLevels, xLabel, mode, barCo
   ctx.fillText('Frequency', 0, 0); ctx.restore();
 
   // Confidence lines
-  const lineColors = { 50: '#bbb', 70: '#999', 85: '#666', 95: '#333' };
+  const lineColors = { 50: '#c0392b', 70: '#e67e22', 85: '#f1c40f', 95: '#27ae60' };
   confidenceLevels.forEach(p => {
     const val = confValues[p];
     // Find bar index for this value
@@ -1773,7 +1773,7 @@ function showStats(el, sortedData, sampleCount) {
   const med = Math.round(percentile(sortedData, 50));
   const sd = stdev(sortedData).toFixed(1);
   const dq = sampleCount ? dataQuality(sampleCount) : null;
-  const dqColor = dq >= 85 ? '#333' : dq >= 70 ? '#888' : '#bbb';
+  const dqColor = dq >= 85 ? '#27ae60' : dq >= 70 ? '#e67e22' : '#c0392b';
   el.innerHTML = `
     <span class="stat-chip">Trials: <strong>${n.toLocaleString()}</strong></span>
     <span class="stat-chip">Min: <strong>${mn}</strong></span>
@@ -1821,7 +1821,7 @@ $('#sRunBtn').onclick = () => {
       const nominalTotal = Math.round((feature.low + feature.high) / 2);
       drawBurndown($('#sBurndownChart'), burndownPaths, nominalTotal, confWeeks, il === 1 ? 'Week' : 'Iteration');
 
-      const colors = ['#bbb','#999','#666','#333'];
+      const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
       $('#sConfGrid').innerHTML = levels.map((p,i) => {
         const iters = confWeeks[p];
         const dateStr = addWeeksToDate(startDate, iters, il);
@@ -1854,7 +1854,7 @@ $('#sRunBtn').onclick = () => {
       $('#sCapPathsCard').style.display = '';
       $('#sHistTitle').textContent = 'Items Forecast Distribution';
 
-      const colors = ['#bbb','#999','#666','#333'];
+      const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
       const labels = ['Aggressive','Moderate','Recommended','Conservative'];
       $('#sCapGrid').innerHTML = levels.map((p,i) => {
         const items = Math.floor(percentile(results, 100-p));
@@ -1938,7 +1938,7 @@ $('#runBtn').onclick = () => {
       $('#mfCapResultCard').style.display = '';
       $('#mfCapGridCard').style.display = '';
 
-      const colors = ['#bbb','#999','#666','#333'];
+      const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
       const labels = ['Aggressive','Moderate','Recommended','Conservative'];
       $('#mfCapGrid').innerHTML = levels.map((p,i) => {
         const items = Math.floor(percentile(results, 100-p));
@@ -2358,7 +2358,7 @@ $('#mtRunBtn').onclick = () => {
     const nd = runMultiTeamSimNoDeps(teams, numTrials);
     const { teamComp, prodComp } = wd;
     const levels = [50,70,85,95];
-    const colors = ['#bbb','#999','#666','#333'];
+    const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
 
     $('#mtResults').classList.add('visible');
 
