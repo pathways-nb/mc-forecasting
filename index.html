@@ -1,0 +1,2182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monte Carlo Forecasting</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --sidebar-w: 280px;
+  --blue: #4a8fe7;
+  --blue-dark: #3a7bd5;
+  --green: #27ae60;
+  --yellow: #f1c40f;
+  --orange: #e67e22;
+  --red: #c0392b;
+  --bg: #f7f8fa;
+  --card-bg: #fff;
+  --border: #e4e6ea;
+  --text: #1a1a2e;
+  --text-secondary: #666;
+  --text-muted: #999;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.6; }
+
+/* ── Sidebar ── */
+.sidebar {
+  position: fixed; top: 0; left: 0; width: var(--sidebar-w); height: 100vh;
+  background: #1e1e2e; color: #cdd6f4; display: flex; flex-direction: column;
+  z-index: 100; transition: width 0.25s ease, transform 0.25s ease;
+  overflow: hidden;
+}
+.sidebar-header { padding: 20px 18px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sidebar-header-text h1 { font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: -0.02em; white-space: nowrap; }
+.sidebar-header-text p { font-size: 0.7rem; color: #7f849c; margin-top: 2px; white-space: nowrap; }
+.sidebar-collapse-btn {
+  background: none; border: none; color: #7f849c; cursor: pointer; font-size: 1.1rem;
+  padding: 4px; border-radius: 4px; transition: color 0.15s, background 0.15s; flex-shrink: 0;
+}
+.sidebar-collapse-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 10px 0; }
+.sidebar-nav .nav-section { padding: 8px 18px 4px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #585b70; white-space: nowrap; overflow: hidden; }
+.sidebar-nav a {
+  display: flex; align-items: center; gap: 10px; padding: 7px 18px;
+  color: #bac2de; text-decoration: none; font-size: 0.82rem;
+  transition: background 0.12s, color 0.12s; cursor: pointer; white-space: nowrap; overflow: hidden;
+}
+.sidebar-nav a:hover { background: rgba(255,255,255,0.05); color: #fff; }
+.sidebar-nav a.active { background: rgba(74,143,231,0.15); color: #89b4fa; font-weight: 500; }
+.sidebar-nav a .nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+.sidebar-nav a .nav-label { overflow: hidden; text-overflow: ellipsis; }
+.sidebar-footer { padding: 12px 18px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 0.7rem; color: #585b70; white-space: nowrap; overflow: hidden; }
+.sidebar-footer a { color: #89b4fa; text-decoration: none; }
+.sidebar-footer a:hover { color: #b4d0fa; text-decoration: underline; }
+
+/* ── Sidebar collapsed ── */
+.sidebar.collapsed { width: 56px; }
+.sidebar.collapsed .sidebar-header-text,
+.sidebar.collapsed .nav-section,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .sidebar-footer span { opacity: 0; width: 0; overflow: hidden; }
+.sidebar.collapsed .sidebar-header { justify-content: center; padding: 20px 8px 12px; }
+.sidebar.collapsed .sidebar-nav a { justify-content: center; padding: 7px 0; }
+.sidebar.collapsed .sidebar-nav a .nav-icon { margin: 0; }
+.sidebar.collapsed .sidebar-footer { text-align: center; padding: 12px 4px; }
+
+/* ── Main ── */
+.main { margin-left: var(--sidebar-w); min-height: 100vh; transition: margin-left 0.25s ease; }
+body.sidebar-collapsed .main { margin-left: 56px; }
+.page { display: none; padding: 32px 40px 80px; max-width: 1600px; }
+.page.active { display: block; }
+
+/* ── Grid layouts ── */
+.input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.input-grid > .card { margin-bottom: 0; }
+.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.results-grid > .card { margin-bottom: 0; }
+.results-grid .full-width { grid-column: 1 / -1; }
+@media (max-width: 1100px) {
+  .input-grid, .results-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Mobile ── */
+.mobile-toggle {
+  display: none; position: fixed; top: 12px; left: 12px; z-index: 200;
+  background: #1e1e2e; color: #fff; border: none; border-radius: 8px;
+  width: 40px; height: 40px; font-size: 1.2rem; cursor: pointer;
+}
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .mobile-toggle { display: flex; align-items: center; justify-content: center; }
+  .page { padding: 60px 16px 80px; max-width: 100%; }
+  .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 50; }
+  .backdrop.show { display: block; }
+}
+
+/* ── Cards & inputs ── */
+h2.page-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+.page-subtitle { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 28px; }
+.card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; min-width: 0; }
+.card h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 12px; color: #333; }
+label { display: block; font-size: 0.8rem; font-weight: 500; color: #555; margin-bottom: 4px; }
+input[type="text"], input[type="number"] { border: 1px solid #ccc; border-radius: 6px; padding: 8px 10px; font-size: 0.88rem; width: 100%; outline: none; transition: border-color 0.15s; }
+input[type="date"] { border: 1px solid #ccc; border-radius: 6px; padding: 8px 10px; font-size: 0.88rem; outline: none; }
+input:focus { border-color: var(--blue); }
+select { border: 1px solid #ccc; border-radius: 6px; padding: 8px 10px; font-size: 0.88rem; outline: none; background: #fff; }
+
+/* ── Tooltips ── */
+.label-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.label-row label { margin-bottom: 0; }
+.info-tip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%; background: #dde3ea; color: #555;
+  font-size: 0.65rem; font-weight: 700; cursor: help; position: relative; flex-shrink: 0;
+}
+.info-tip .tip-text {
+  display: none; position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: #2c2c3a; color: #e0e0e0; padding: 8px 12px; border-radius: 6px;
+  font-size: 0.75rem; font-weight: 400; line-height: 1.4; width: 260px;
+  text-align: left; z-index: 300; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  pointer-events: none;
+}
+.info-tip .tip-text::after {
+  content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  border: 5px solid transparent; border-top-color: #2c2c3a;
+}
+.info-tip:hover .tip-text { display: block; }
+
+/* ── Slider ── */
+.slider-row { display: flex; align-items: center; gap: 12px; }
+.slider-row input[type="range"] { flex: 1; accent-color: var(--blue); }
+.slider-val { font-weight: 600; font-size: 1rem; min-width: 28px; text-align: center; }
+
+/* ── Features table ── */
+.features-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.features-table th { text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #888; padding: 4px 8px; border-bottom: 1px solid #eee; }
+.features-table td { padding: 4px 8px; }
+.features-table input { width: 100%; }
+.features-table .remove-btn { background: none; border: none; color: var(--red); cursor: pointer; font-size: 1.1rem; padding: 0 4px; }
+
+/* ── Buttons ── */
+.btn-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+.btn-secondary { background: #e8ecf1; color: #333; }
+.btn-secondary:hover { background: #dce1e8; }
+.btn-primary { background: var(--blue); color: #fff; }
+.btn-primary:hover { background: var(--blue-dark); }
+.btn-run { padding: 12px 40px; font-size: 0.95rem; }
+
+/* ── Trial selector ── */
+.trial-selector { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.trial-selector label.trial-opt {
+  display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 6px;
+  border: 1px solid var(--border); cursor: pointer; font-size: 0.82rem; font-weight: 500;
+  transition: all 0.12s; margin: 0;
+}
+.trial-selector input[type="radio"] { display: none; }
+.trial-selector input[type="radio"]:checked + .trial-opt {
+  background: var(--blue); color: #fff; border-color: var(--blue);
+}
+
+/* ── Mode toggle ── */
+.mode-toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; width: fit-content; margin-bottom: 12px; }
+.mode-toggle input[type="radio"] { display: none; }
+.mode-toggle label {
+  padding: 6px 14px; font-size: 0.78rem; font-weight: 500; cursor: pointer;
+  border-right: 1px solid var(--border); transition: all 0.12s; color: #666;
+}
+.mode-toggle label:last-of-type { border-right: none; }
+.mode-toggle input[type="radio"]:checked + label { background: var(--blue); color: #fff; }
+
+.outcome-note { font-size: 0.8rem; color: #777; margin-top: 10px; }
+.outcome-note strong { color: var(--orange); }
+
+.results { display: none; }
+.results.visible { display: block; }
+.chart-container { position: relative; }
+canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
+
+/* ── Chart tooltip ── */
+.chart-tooltip {
+  display: none; position: absolute; pointer-events: none; z-index: 50;
+  background: #2c2c3a; color: #e8e8e8; padding: 8px 12px; border-radius: 6px;
+  font-size: 0.78rem; line-height: 1.5; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  white-space: nowrap;
+}
+.chart-tooltip .tt-label { font-weight: 600; color: #fff; }
+.chart-tooltip .tt-val { color: #a0cfff; }
+
+/* ── Stats row ── */
+.stats-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0; }
+.stat-chip { font-size: 0.72rem; color: #888; background: #f5f6f8; padding: 3px 10px; border-radius: 12px; }
+.stat-chip strong { color: #444; }
+
+/* ── Confidence grid ── */
+.confidence-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+.conf-card { text-align: center; padding: 12px 8px; border-radius: 8px; background: #f0f4f8; }
+.conf-card .pct { font-size: 0.72rem; font-weight: 600; color: #888; text-transform: uppercase; }
+.conf-card .val { font-size: 1.25rem; font-weight: 700; color: #2c3e50; margin-top: 2px; }
+.conf-card .date { font-size: 0.72rem; color: #666; margin-top: 2px; }
+
+.feat-results table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.feat-results th { text-align: left; font-size: 0.7rem; text-transform: uppercase; color: #888; padding: 6px 8px; border-bottom: 1px solid #eee; }
+.feat-results td { padding: 6px 8px; border-bottom: 1px solid #f5f5f5; }
+
+/* ── Capacity ── */
+.capacity-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 12px; }
+.capacity-card { padding: 16px; border-radius: 8px; background: #f0f4f8; text-align: center; }
+.capacity-card .cap-label { font-size: 0.72rem; font-weight: 600; color: #888; text-transform: uppercase; }
+.capacity-card .cap-val { font-size: 1.6rem; font-weight: 700; color: #2c3e50; margin: 4px 0 2px; }
+.capacity-card .cap-sub { font-size: 0.72rem; color: #888; }
+
+/* ── Documentation ── */
+.doc-content { line-height: 1.75; max-width: 820px; }
+.doc-content h2 { font-size: 1.25rem; font-weight: 700; margin: 32px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.doc-content h2:first-child { margin-top: 0; }
+.doc-content h3 { font-size: 1.05rem; font-weight: 600; margin: 24px 0 8px; color: #333; }
+.doc-content p { margin-bottom: 12px; font-size: 0.9rem; color: #444; }
+.doc-content ul, .doc-content ol { margin: 8px 0 16px 20px; font-size: 0.9rem; color: #444; }
+.doc-content li { margin-bottom: 6px; }
+.doc-content code { background: #f0f1f3; padding: 2px 6px; border-radius: 4px; font-size: 0.82rem; font-family: 'SF Mono', 'Fira Code', monospace; }
+.doc-content .callout { padding: 14px 16px; border-radius: 8px; margin: 16px 0; font-size: 0.85rem; display: flex; gap: 10px; align-items: flex-start; }
+.doc-content .callout-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+.doc-content .callout-info { background: #e8f0fe; border-left: 3px solid var(--blue); }
+.doc-content .callout-tip { background: #e6f7ed; border-left: 3px solid var(--green); }
+.doc-content .callout-warn { background: #fef3e2; border-left: 3px solid var(--orange); }
+.doc-content .callout-formula { background: #f8f6ff; border-left: 3px solid #7c3aed; padding: 16px 18px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85rem; border-radius: 8px; margin: 16px 0; }
+.doc-content .callout-formula .formula-label { font-family: var(--font); font-weight: 600; font-size: 0.75rem; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+.doc-content .example-box { background: #fafafa; border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin: 12px 0; font-size: 0.85rem; }
+.doc-content .example-box .example-label { font-weight: 600; font-size: 0.72rem; text-transform: uppercase; color: #888; margin-bottom: 6px; }
+.doc-content .step-list { counter-reset: steps; list-style: none; margin-left: 0; padding: 0; }
+.doc-content .step-list li { counter-increment: steps; position: relative; padding-left: 36px; margin-bottom: 14px; }
+.doc-content .step-list li::before {
+  content: counter(steps); position: absolute; left: 0; top: 0;
+  width: 24px; height: 24px; border-radius: 50%; background: var(--blue); color: #fff;
+  font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; justify-content: center;
+}
+
+/* ── Portfolio table ── */
+.portfolio-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.portfolio-table th { text-align: left; font-size: 0.7rem; text-transform: uppercase; color: #888; padding: 8px 10px; border-bottom: 2px solid #ddd; white-space: nowrap; }
+.portfolio-table td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
+.portfolio-table tr:hover { background: #f8f9fb; }
+.portfolio-table .pf-order { color: #999; font-size: 0.75rem; text-align: center; width: 36px; }
+.portfolio-table .pf-name { font-weight: 500; }
+.portfolio-table .pf-scope { color: #666; }
+.portfolio-table .pf-date { font-weight: 600; }
+.traffic-light {
+  display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle;
+}
+.tl-green { background: #27ae60; }
+.tl-yellow { background: #f1c40f; }
+.tl-red { background: #c0392b; }
+.tl-grey { background: #ccc; }
+.portfolio-legend { display: flex; gap: 16px; margin-top: 10px; font-size: 0.72rem; color: #888; flex-wrap: wrap; }
+.portfolio-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.cutline-row { background: #fef3e2 !important; }
+.cutline-row td { border-top: 2px dashed var(--orange); font-weight: 600; color: var(--orange); }
+
+/* ── Multi-Team Forecast ── */
+.teams-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.82rem; }
+.teams-table th { text-align: left; font-size: 0.7rem; text-transform: uppercase; color: #888; padding: 6px 8px; border-bottom: 2px solid #ddd; white-space: nowrap; }
+.teams-table td { padding: 4px 6px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+.teams-table input[type="text"], .teams-table input[type="number"] { width: 100%; }
+.teams-table .remove-btn { background: none; border: none; color: var(--red); cursor: pointer; font-size: 1.1rem; padding: 0 4px; }
+.team-color-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; flex-shrink: 0; }
+.dep-badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; background: #f0f0f0; color: #666; margin: 1px 2px; }
+.dep-badge.has-dep { background: #fef3e2; color: #b35c00; border: 1px solid #f1c40f; }
+.dep-impact-card { padding: 14px 16px; border-radius: 8px; background: #f8f6ff; border-left: 3px solid #7c3aed; margin-bottom: 10px; font-size: 0.85rem; }
+.dep-impact-card .dep-title { font-weight: 600; margin-bottom: 6px; color: #3a1a7a; }
+.dep-impact-card .dep-detail { color: #555; line-height: 1.6; }
+.dep-compound { font-weight: 700; color: #7c3aed; }
+.scenario-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+.scenario-compare .scenario-col { border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+.scenario-compare .scenario-col h4 { font-size: 0.85rem; font-weight: 600; margin-bottom: 10px; color: #333; padding-bottom: 6px; border-bottom: 1px solid #eee; }
+.scenario-delta { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+.scenario-delta.positive { background: #fef3e2; color: #b35c00; }
+.scenario-delta.neutral { background: #e6f7ed; color: #1a6e3c; }
+.mt-conf-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+.mt-conf-card { text-align: center; padding: 12px 8px; border-radius: 8px; background: #f0f4f8; }
+.mt-conf-card .pct { font-size: 0.72rem; font-weight: 600; color: #888; text-transform: uppercase; }
+.mt-conf-card .val { font-size: 1.2rem; font-weight: 700; color: #2c3e50; margin-top: 2px; }
+.mt-conf-card .date { font-size: 0.72rem; color: #666; margin-top: 2px; }
+.portfolio-table .summary-row td { background: #f0f4f8; font-weight: 700; border-top: 2px solid #ccc; }
+
+@media (max-width: 700px) {
+  .scenario-compare { grid-template-columns: 1fr; }
+  .mt-conf-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 500px) {
+  .confidence-grid { grid-template-columns: repeat(2, 1fr); }
+  .capacity-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<button class="mobile-toggle" id="mobileToggle">&#9776;</button>
+<div class="backdrop" id="backdrop"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-header-text">
+      <h1>MC Forecasting</h1>
+      <p>Probabilistic delivery planning</p>
+    </div>
+    <button class="sidebar-collapse-btn" id="collapseBtn" title="Collapse sidebar">&#9664;</button>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section">Tools</div>
+    <a data-page="single" class="active"><span class="nav-icon">&#9670;</span><span class="nav-label">Single Feature</span></a>
+    <a data-page="forecast"><span class="nav-icon">&#9881;</span><span class="nav-label">Multi-Feature</span></a>
+    <a data-page="multi-team"><span class="nav-icon">&#9782;</span><span class="nav-label">Multi-Team</span></a>
+  </div>
+  <div class="sidebar-footer">
+    <span>Made with &#10084;&#65039; by <a href="https://yourpaths.eu" target="_blank">Pathways</a></span>
+  </div>
+</nav>
+
+<div class="main">
+
+  <!-- ════════ Single Feature Forecast ════════ -->
+  <div class="page active" id="page-single">
+    <h2 class="page-title">Single Feature Forecast</h2>
+    <p class="page-subtitle">Forecast one feature for a single team</p>
+
+    <div class="mode-toggle" style="margin-bottom:20px;">
+      <input type="radio" name="singleMode" id="singleModeWhen" value="when" checked>
+      <label for="singleModeWhen">When will it ship?</label>
+      <input type="radio" name="singleMode" id="singleModeHow" value="how">
+      <label for="singleModeHow">How many can I finish?</label>
+    </div>
+
+    <div class="input-grid">
+    <div class="card">
+      <h3>Throughput Data</h3>
+      <div class="label-row">
+        <label for="sThroughput">Team throughput per iteration (comma-separated)</label>
+        <span class="info-tip">?<span class="tip-text">Enter your team's actual throughput per iteration. Each number = items completed in that iteration. Include good and bad iterations, including zeros.</span></span>
+      </div>
+      <input type="text" id="sThroughput" placeholder="e.g. 3, 5, 4, 2, 6, 3, 4, 5" value="3, 5, 4, 2, 6, 3, 4, 5">
+      <div style="display:flex; gap:16px; margin-top:8px; flex-wrap:wrap; align-items:end;">
+        <div style="flex:1; min-width:160px;">
+          <div class="label-row">
+            <label>Iteration length</label>
+            <span class="info-tip">?<span class="tip-text">How long is each iteration/sprint? Your throughput data should match this cadence.</span></span>
+          </div>
+          <select id="sIterLenSel">
+            <option value="1" selected>1 week</option>
+            <option value="2">2 weeks</option>
+            <option value="3">3 weeks</option>
+          </select>
+        </div>
+        <div style="flex:1; min-width:200px;">
+          <div class="label-row">
+            <label>Simulation trials</label>
+            <span class="info-tip">?<span class="tip-text">More trials = smoother results. 500 is fast and sufficient. 10,000 gives smoother histograms.</span></span>
+          </div>
+          <div class="trial-selector">
+            <input type="radio" name="sTrials" id="st500" value="500" checked>
+            <label class="trial-opt" for="st500">500</label>
+            <input type="radio" name="sTrials" id="st10k" value="10000">
+            <label class="trial-opt" for="st10k">10,000</label>
+            <input type="radio" name="sTrials" id="st100k" value="100000">
+            <label class="trial-opt" for="st100k">100,000</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- When mode: scope + dates -->
+    <div class="card" id="sWhenCard">
+      <h3>Feature Scope</h3>
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:80px;">
+          <div class="label-row">
+            <label>Low (items)</label>
+            <span class="info-tip">?<span class="tip-text">Minimum remaining items (optimistic). Each trial picks a random scope between Low and High.</span></span>
+          </div>
+          <input type="number" id="sLow" value="10" min="1">
+        </div>
+        <div style="flex:1; min-width:80px;">
+          <div class="label-row">
+            <label>High (items)</label>
+            <span class="info-tip">?<span class="tip-text">Maximum remaining items (pessimistic). Accounts for scope uncertainty and hidden work.</span></span>
+          </div>
+          <input type="number" id="sHigh" value="14" min="1">
+        </div>
+        <div style="flex:1; min-width:80px;">
+          <div class="label-row">
+            <label>Split rate</label>
+            <span class="info-tip">?<span class="tip-text">Split/growth rate multiplier. E.g. "1.0-1.3" means 0-30% growth. Leave empty for no growth.</span></span>
+          </div>
+          <input type="text" id="sSplit" placeholder="1.0" value="">
+        </div>
+      </div>
+      <div style="display:flex; gap:16px; margin-top:10px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:140px;">
+          <div class="label-row"><label for="sStartDate">Forecast start date</label></div>
+          <input type="date" id="sStartDate">
+        </div>
+      </div>
+    </div>
+
+    <!-- How many mode: horizon + right-size -->
+    <div class="card" id="sHowCard" style="display:none;">
+      <h3>Planning Window</h3>
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:140px;">
+          <div class="label-row">
+            <label for="sHorizon">Planning horizon (weeks)</label>
+            <span class="info-tip">?<span class="tip-text">How far ahead you're planning. E.g. 12 weeks for a quarter. Converted to iterations automatically.</span></span>
+          </div>
+          <input type="number" id="sHorizon" value="12" min="1" max="104">
+        </div>
+        <div style="flex:1; min-width:140px;">
+          <div class="label-row">
+            <label for="sRightSize">Right-size value (items per feature)</label>
+            <span class="info-tip">?<span class="tip-text">85th percentile of historical feature sizes. Used to convert total items into feature count. Start with 5-8 if unknown.</span></span>
+          </div>
+          <input type="number" id="sRightSize" value="8" min="1" max="50">
+        </div>
+      </div>
+    </div>
+    </div><!-- /input-grid -->
+
+    <div style="text-align:center; margin: 20px 0;">
+      <button class="btn btn-primary btn-run" id="sRunBtn">Run Forecast</button>
+    </div>
+
+    <div class="results" id="sResults">
+      <div class="results-grid">
+        <div class="card full-width" id="sConfCard">
+          <h3>Confidence Levels</h3>
+          <div class="confidence-grid" id="sConfGrid"></div>
+        </div>
+        <div class="card full-width" id="sCapCard" style="display:none;">
+          <h3>Feature Capacity</h3>
+          <p style="font-size:0.82rem; color:#666; margin-bottom:8px;">How many right-sized features can your team deliver?</p>
+          <div class="capacity-grid" id="sCapGrid"></div>
+        </div>
+        <div class="card full-width">
+          <h3 id="sHistTitle">Completion Distribution</h3>
+          <div class="chart-container">
+            <canvas id="sHistogram" width="700" height="300"></canvas>
+            <div class="chart-tooltip" id="sHistTooltip"></div>
+          </div>
+          <div class="stats-row" id="sStatsRow"></div>
+        </div>
+        <div class="card full-width" id="sBurndownCard">
+          <h3>Monte Carlo Simulation Paths</h3>
+          <p style="font-size:0.78rem; color:#888; margin-bottom:8px;">Each line is one trial &mdash; showing remaining items burned down over iterations. The spread shows uncertainty.</p>
+          <div class="chart-container">
+            <canvas id="sBurndownChart" width="700" height="280"></canvas>
+          </div>
+        </div>
+        <div class="card full-width" id="sCapPathsCard" style="display:none;">
+          <h3>Monte Carlo Simulation Paths</h3>
+          <p style="font-size:0.78rem; color:#888; margin-bottom:8px;">Each line is one trial &mdash; showing cumulative items completed over iterations. The spread shows uncertainty in total output.</p>
+          <div class="chart-container">
+            <canvas id="sCapPathsChart" width="700" height="280"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ Multi-Feature Forecast ════════ -->
+  <div class="page" id="page-forecast">
+    <h2 class="page-title">Multi-Feature Forecast</h2>
+    <p class="page-subtitle">Forecast multiple features for a single team</p>
+
+    <div class="mode-toggle" style="margin-bottom:20px;">
+      <input type="radio" name="mfMode" id="mfModeWhen" value="when" checked>
+      <label for="mfModeWhen">When will it ship?</label>
+      <input type="radio" name="mfMode" id="mfModeHow" value="how">
+      <label for="mfModeHow">How many can I finish?</label>
+    </div>
+
+    <div class="input-grid">
+    <div class="card">
+      <h3>Simulation Settings</h3>
+      <div id="sharedTpCard">
+        <div class="label-row">
+          <label for="throughput">Team throughput per iteration (comma-separated)</label>
+          <span class="info-tip">?<span class="tip-text">Enter your team's actual throughput per iteration. Each number = items completed in that iteration. More data points = more representative forecast. Don't cherry-pick &mdash; include good and bad iterations.</span></span>
+        </div>
+        <input type="text" id="throughput" placeholder="e.g. 3, 5, 4, 2, 6, 3, 4, 5" value="3, 5, 4, 2, 6, 3, 4, 5">
+        <div style="height:8px"></div>
+      </div>
+      <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:end;">
+        <div style="flex:1; min-width:160px;">
+          <div class="label-row">
+            <label>Iteration length</label>
+            <span class="info-tip">?<span class="tip-text">How long is each iteration/sprint? Your throughput data should match this cadence. E.g. if you run 2-week sprints, select "2 weeks" and enter items completed per sprint.</span></span>
+          </div>
+          <select id="iterLenSel">
+            <option value="1" selected>1 week</option>
+            <option value="2">2 weeks</option>
+            <option value="3">3 weeks</option>
+          </select>
+        </div>
+        <div style="flex:1; min-width:140px;">
+          <div class="label-row">
+            <label for="startDate">Forecast start date</label>
+            <span class="info-tip">?<span class="tip-text">The date from which to project forward. Results will show calendar dates based on this starting point.</span></span>
+          </div>
+          <input type="date" id="startDate">
+        </div>
+        <div style="flex:1; min-width:140px;">
+          <div class="label-row">
+            <label for="targetDate">Target date (optional)</label>
+            <span class="info-tip">?<span class="tip-text">Set a target deadline. The portfolio table will compare each feature's forecast against this date using traffic lights: green = on time, yellow = within 1 iteration, red = late.</span></span>
+          </div>
+          <input type="date" id="targetDate">
+        </div>
+      </div>
+      <div style="display:flex; gap:16px; margin-top:8px; flex-wrap:wrap; align-items:end;">
+        <div style="flex:1; min-width:200px;">
+          <div class="label-row">
+            <label>Simulation trials</label>
+            <span class="info-tip">?<span class="tip-text">More trials = smoother, more stable results. 500 is fast and usually sufficient. 10,000 gives smoother histograms. 100,000 gives very precise percentiles but takes a moment.</span></span>
+          </div>
+          <div class="trial-selector">
+            <input type="radio" name="trials" id="t500" value="500" checked>
+            <label class="trial-opt" for="t500">500</label>
+            <input type="radio" name="trials" id="t10k" value="10000">
+            <label class="trial-opt" for="t10k">10,000</label>
+            <input type="radio" name="trials" id="t100k" value="100000">
+            <label class="trial-opt" for="t100k">100,000</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="mfFeaturesCard">
+      <h3>Features in Progress</h3>
+      <div class="label-row" style="margin-bottom:8px">
+        <label style="margin:0">Throughput mode</label>
+        <span class="info-tip">?<span class="tip-text"><strong>Shared pool:</strong> Team has one throughput number, distributed across features by allocation %. Good when one team works on multiple features.<br><br><strong>Per feature:</strong> Each feature has its own throughput data. Good when different sub-teams or individuals own different features.</span></span>
+      </div>
+      <div class="mode-toggle">
+        <input type="radio" name="tpMode" id="modeShared" value="shared" checked>
+        <label for="modeShared">Shared pool</label>
+        <input type="radio" name="tpMode" id="modePerFeature" value="per-feature">
+        <label for="modePerFeature">Per feature</label>
+      </div>
+      <div class="slider-row" id="wipRow">
+        <div class="label-row" style="margin:0">
+          <label style="margin:0">WIP</label>
+          <span class="info-tip">?<span class="tip-text">Work In Progress: how many features the team works on in parallel. Higher WIP = more uncertainty = wider forecast spread. The simulation distributes each iteration's throughput randomly across this many active features.</span></span>
+        </div>
+        <input type="range" id="wipSlider" min="1" max="20" value="3">
+        <span class="slider-val" id="wipVal">3</span>
+      </div>
+      <table class="features-table" id="featuresTable">
+        <thead><tr>
+          <th>Feature</th>
+          <th style="width:70px">
+            <div class="label-row" style="margin:0">
+              Low
+              <span class="info-tip" style="position:relative;top:-1px">?<span class="tip-text">Minimum remaining items (optimistic scope). Each trial picks a random value between Low and High. If scope is known exactly, set Low = High. (Magennis Size-Growth-Pace model)</span></span>
+            </div>
+          </th>
+          <th style="width:70px">
+            <div class="label-row" style="margin:0">
+              High
+              <span class="info-tip" style="position:relative;top:-1px">?<span class="tip-text">Maximum remaining items (pessimistic scope). Accounts for scope uncertainty, hidden work, etc.</span></span>
+            </div>
+          </th>
+          <th style="width:80px">
+            <div class="label-row" style="margin:0">
+              Split
+              <span class="info-tip" style="position:relative;top:-1px">?<span class="tip-text">Split/growth rate multiplier (Magennis). Stories often split during development. A value of 1.2 means 20% scope growth on average. Enter a range like "1.0-1.5" or a single value like "1.0" for no growth. Leave empty for no growth.</span></span>
+            </div>
+          </th>
+          <th style="width:70px" class="col-alloc">
+            <div class="label-row" style="margin:0">
+              Alloc %
+              <span class="info-tip" style="position:relative;top:-1px">?<span class="tip-text">What % of the shared throughput goes to this feature. Leave empty for equal distribution.</span></span>
+            </div>
+          </th>
+          <th style="width:160px; display:none;" class="col-tp">
+            <div class="label-row" style="margin:0">
+              Throughput
+              <span class="info-tip" style="position:relative;top:-1px">?<span class="tip-text">This feature's own throughput data (comma-separated). Items completed per iteration by the sub-team working on it.</span></span>
+            </div>
+          </th>
+          <th style="width:32px"></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="addFeature">+ Add Feature</button>
+      </div>
+      <div class="outcome-note" id="outcomeNote"></div>
+    </div>
+
+    <!-- How many mode: capacity inputs -->
+    <div class="card" id="mfCapCard" style="display:none;">
+      <h3>Planning Window</h3>
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:140px;">
+          <div class="label-row">
+            <label for="mfHorizon">Planning horizon (weeks)</label>
+            <span class="info-tip">?<span class="tip-text">How far ahead you're planning. E.g. 12 weeks for a quarter.</span></span>
+          </div>
+          <input type="number" id="mfHorizon" value="12" min="1" max="104">
+        </div>
+        <div style="flex:1; min-width:140px;">
+          <div class="label-row">
+            <label for="mfRightSize">Right-size value (items per feature)</label>
+            <span class="info-tip">?<span class="tip-text">85th percentile of historical feature sizes. Used to convert total items into feature count.</span></span>
+          </div>
+          <input type="number" id="mfRightSize" value="8" min="1" max="50">
+        </div>
+      </div>
+    </div>
+    </div><!-- /input-grid -->
+
+    <div style="text-align:center; margin: 20px 0;">
+      <button class="btn btn-primary btn-run" id="runBtn">Run Simulation</button>
+    </div>
+
+    <div class="results" id="results">
+      <div class="results-grid">
+        <!-- Capacity results (how many mode) -->
+        <div class="card" id="mfCapResultCard" style="display:none;">
+          <h3>Items Forecast Distribution</h3>
+          <p style="font-size:0.78rem; color:#888; margin-bottom:8px;">Total items your team could complete. Confidence lines show: with X% certainty you'll complete <em>at least</em> this many.</p>
+          <div class="chart-container">
+            <canvas id="mfCapHistogram" width="700" height="300"></canvas>
+            <div class="chart-tooltip" id="mfCapHistTooltip"></div>
+          </div>
+          <div class="stats-row" id="mfCapStatsRow"></div>
+        </div>
+        <div class="card" id="mfCapGridCard" style="display:none;">
+          <h3>Feature Capacity</h3>
+          <p style="font-size:0.82rem; color: #666; margin-bottom: 8px;">How many right-sized features can your team deliver?</p>
+          <div class="capacity-grid" id="mfCapGrid"></div>
+        </div>
+        <!-- When mode results -->
+        <div class="card" id="mfBurndownCard">
+          <h3>Monte Carlo Simulation Paths</h3>
+          <p style="font-size:0.78rem; color:#888; margin-bottom:8px;">Each line is one trial &mdash; showing total remaining items burned down over iterations. The spread shows uncertainty.</p>
+          <div class="chart-container">
+            <canvas id="burndownChart" width="700" height="280"></canvas>
+            <div class="chart-tooltip" id="burndownTooltip"></div>
+          </div>
+        </div>
+        <div class="card" id="mfHistCard">
+          <h3>Completion Distribution</h3>
+          <div class="chart-container">
+            <canvas id="histogram" width="700" height="300"></canvas>
+            <div class="chart-tooltip" id="histTooltip"></div>
+          </div>
+          <div class="stats-row" id="statsRow"></div>
+        </div>
+        <div class="card" id="mfConfCard">
+          <h3>Confidence Levels</h3>
+          <div class="confidence-grid" id="confidenceGrid"></div>
+        </div>
+        <div class="card" id="mfFeatCard">
+          <h3>Per-Feature Breakdown</h3>
+          <div class="feat-results" id="featResults"></div>
+        </div>
+        <div class="card full-width" id="mfPortfolioCard">
+          <h3>Portfolio Forecaster</h3>
+          <p style="font-size:0.78rem; color:#888; margin-bottom:10px;">Sequential cut-line forecast (Magennis method). Features processed in priority order &mdash; throughput flows to the next feature as each completes. Shows when each feature will be done at different confidence levels.</p>
+          <div id="portfolioResults"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ Multi-Team Product Forecast ════════ -->
+  <div class="page" id="page-multi-team">
+    <h2 class="page-title">Multi-Team Product Forecast</h2>
+    <p class="page-subtitle">Model a product built by multiple teams &mdash; with or without dependencies &mdash; and get probability-weighted completion dates</p>
+
+    <div class="input-grid">
+    <div class="card" style="grid-column: 1 / -1;">
+      <h3>Teams &amp; Dependencies</h3>
+      <p style="font-size:0.78rem; color:#888; margin-bottom:10px;">One row per team. Each team has its own throughput. The "Depends on" column takes team names or row numbers (comma-separated). Leave empty for no dependencies.</p>
+      <div style="overflow-x:auto;">
+        <table class="teams-table" id="mtTeamsTable">
+          <thead><tr>
+            <th style="width:32px">#</th>
+            <th style="min-width:100px">Team</th>
+            <th style="min-width:110px">Epic</th>
+            <th style="width:65px"><div class="label-row" style="margin:0">Low <span class="info-tip">?<span class="tip-text">Minimum remaining items (optimistic scope).</span></span></div></th>
+            <th style="width:65px"><div class="label-row" style="margin:0">High <span class="info-tip">?<span class="tip-text">Maximum remaining items (pessimistic scope).</span></span></div></th>
+            <th style="width:80px"><div class="label-row" style="margin:0">Split <span class="info-tip">?<span class="tip-text">Split/growth rate, e.g. "1.0-1.5". Leave empty for no growth.</span></span></div></th>
+            <th style="min-width:170px"><div class="label-row" style="margin:0">Throughput <span class="info-tip">?<span class="tip-text">This team's items completed per iteration (comma-separated). Include zeros.</span></span></div></th>
+            <th style="min-width:120px"><div class="label-row" style="margin:0">Depends on <span class="info-tip">?<span class="tip-text">Team names or row numbers this team depends on (comma-separated). This team cannot start until ALL listed teams finish. E.g. "Team Alpha, Team Beta" or "1, 2".</span></span></div></th>
+            <th style="width:32px"></th>
+          </tr></thead>
+          <tbody id="mtTeamsBody"></tbody>
+        </table>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="mtAddTeam">+ Add Team</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Settings</h3>
+      <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:end;">
+        <div style="flex:1; min-width:160px;">
+          <div class="label-row"><label>Iteration length</label>
+            <span class="info-tip">?<span class="tip-text">All teams use the same iteration cadence. Throughput data must match this.</span></span>
+          </div>
+          <select id="mtIterLenSel">
+            <option value="1" selected>1 week</option>
+            <option value="2">2 weeks</option>
+            <option value="3">3 weeks</option>
+          </select>
+        </div>
+        <div style="flex:1; min-width:130px;">
+          <div class="label-row"><label for="mtStartDate">Start date</label></div>
+          <input type="date" id="mtStartDate">
+        </div>
+        <div style="flex:1; min-width:130px;">
+          <div class="label-row"><label for="mtTargetDate">Target date</label>
+            <span class="info-tip">?<span class="tip-text">Deadline for the product. Traffic lights compare each team's 85th percentile against this date. Also used for compound probability calculations.</span></span>
+          </div>
+          <input type="date" id="mtTargetDate">
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <div class="label-row"><label>Simulation trials</label></div>
+        <div class="trial-selector">
+          <input type="radio" name="mtTrials" id="mtt500" value="500">
+          <label class="trial-opt" for="mtt500">500</label>
+          <input type="radio" name="mtTrials" id="mtt10k" value="10000" checked>
+          <label class="trial-opt" for="mtt10k">10,000</label>
+          <input type="radio" name="mtTrials" id="mtt100k" value="100000">
+          <label class="trial-opt" for="mtt100k">100,000</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>How it works</h3>
+      <div class="callout callout-info" style="margin:0 0 10px;">
+        <span class="callout-icon">&#8505;</span>
+        <div><strong>No dependencies:</strong> Each team runs in parallel. Product completion = MAX of all team finish dates (the slowest team determines when the product is done).</div>
+      </div>
+      <div class="callout callout-warn" style="margin:0;">
+        <span class="callout-icon">&#9888;</span>
+        <div><strong>With dependencies:</strong> Dependent teams start only after ALL prerequisites finish (per trial). This naturally captures compound probability &mdash; e.g. if A and B each have 85% chance of finishing by a date, the chance BOTH finish = ~72%.</div>
+      </div>
+    </div>
+    </div>
+
+    <div style="text-align:center; margin: 20px 0;">
+      <button class="btn btn-primary btn-run" id="mtRunBtn">Run Product Forecast</button>
+    </div>
+
+    <div class="results" id="mtResults">
+      <div class="results-grid">
+        <div class="card">
+          <h3>Product Completion Confidence</h3>
+          <p style="font-size:0.78rem; color:#888; margin-bottom:8px;">Overall product done = the last team to finish in each trial.</p>
+          <div class="mt-conf-grid" id="mtConfGrid"></div>
+        </div>
+        <div class="card">
+          <h3>Product Completion Distribution</h3>
+          <div class="chart-container">
+            <canvas id="mtHistogram" width="700" height="280"></canvas>
+            <div class="chart-tooltip" id="mtHistTooltip"></div>
+          </div>
+          <div class="stats-row" id="mtStatsRow"></div>
+        </div>
+        <div class="card full-width">
+          <h3>Team Portfolio</h3>
+          <p style="font-size:0.78rem; color:#888; margin-bottom:10px;">Per-team forecasts. Bottom row = product (MAX of all teams per trial).</p>
+          <div id="mtPortfolioResults"></div>
+        </div>
+        <div class="card full-width" id="mtDepImpactCard">
+          <h3>Dependency Impact Analysis</h3>
+          <p style="font-size:0.78rem; color:#888; margin-bottom:10px;">How much do dependencies shift each team's forecast? Includes compound probability calculations.</p>
+          <div id="mtDepImpact"></div>
+        </div>
+        <div class="card full-width" id="mtScenarioCompCard" style="display:none;">
+          <h3>With Dependencies vs. Without</h3>
+          <p style="font-size:0.78rem; color:#888; margin-bottom:10px;">Side-by-side comparison showing the concrete time cost of dependencies.</p>
+          <div class="scenario-compare" id="mtScenarioCompare"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+// ── Navigation ──
+function navigateTo(pageId) {
+  $$('.page').forEach(p => p.classList.remove('active'));
+  $$('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+  const page = $(`#page-${pageId}`);
+  const link = $(`.sidebar-nav a[data-page="${pageId}"]`);
+  if (page) page.classList.add('active');
+  if (link) link.classList.add('active');
+  $('#sidebar').classList.remove('open');
+  $('#backdrop').classList.remove('show');
+  window.scrollTo(0, 0);
+}
+$$('.sidebar-nav a').forEach(a => a.addEventListener('click', e => { e.preventDefault(); navigateTo(a.dataset.page); }));
+$('#mobileToggle').onclick = () => { $('#sidebar').classList.toggle('open'); $('#backdrop').classList.toggle('show'); };
+$('#backdrop').onclick = () => { $('#sidebar').classList.remove('open'); $('#backdrop').classList.remove('show'); };
+
+// ── Sidebar collapse ──
+$('#collapseBtn').onclick = () => {
+  const sidebar = $('#sidebar');
+  const isCollapsed = sidebar.classList.toggle('collapsed');
+  document.body.classList.toggle('sidebar-collapsed', isCollapsed);
+  $('#collapseBtn').innerHTML = isCollapsed ? '&#9654;' : '&#9664;';
+  $('#collapseBtn').title = isCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
+};
+
+// ── Utilities ──
+function binomial(n, r) {
+  r = Math.min(r, n - r);
+  let acc = 1;
+  for (let i = 1; i <= r; i++) acc = acc * (n - r + i) / i;
+  return Math.round(acc);
+}
+
+function percentile(sortedArr, p) {
+  // p in 0-100. Linear interpolation method (Magennis standard).
+  // More accurate than nearest-rank, especially for smaller trial counts.
+  const n = sortedArr.length;
+  if (n === 0) return 0;
+  if (n === 1) return sortedArr[0];
+  const pos = (p / 100) * (n - 1); // 0-indexed position
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  const frac = pos - lo;
+  if (lo === hi) return sortedArr[lo];
+  return sortedArr[lo] + (sortedArr[hi] - sortedArr[lo]) * frac;
+}
+
+// For duration/iteration results we need whole numbers for display
+function percentileInt(sortedArr, p) {
+  return Math.ceil(percentile(sortedArr, p));
+}
+
+// Data quality: Magennis (n-1)/(n+1) = chance next sample falls in observed range
+function dataQuality(n) {
+  if (n < 2) return 0;
+  return ((n - 1) / (n + 1)) * 100;
+}
+
+function addWeeksToDate(dateStr, iterations, iterLen) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + iterations * (iterLen || 1) * 7);
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function getIterLen(id) {
+  const el = document.getElementById(id);
+  return el ? parseInt(el.value) || 1 : 1;
+}
+
+function iterLabel(iterLen, count) {
+  if (iterLen === 1) return count === 1 ? '1 week' : `${count} weeks`;
+  const totalWeeks = count * iterLen;
+  return `${count} iteration${count !== 1 ? 's' : ''} (${totalWeeks} wk${totalWeeks !== 1 ? 's' : ''})`;
+}
+
+function parseThroughput(inputId) {
+  // Include zero-throughput periods (Magennis: they are part of reality)
+  return $(inputId).value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n >= 0);
+}
+
+function getTrialCount(name) {
+  const el = document.querySelector(`input[name="${name}"]:checked`);
+  return el ? parseInt(el.value) : 500;
+}
+
+function mean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+function stdev(arr) { const m = mean(arr); return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length); }
+
+// ══════════════════════════════════
+// ── Single Feature Forecast ──
+// ══════════════════════════════════
+$('#sStartDate').valueAsDate = new Date();
+
+// Mode toggle
+function sUpdateMode() {
+  const mode = document.querySelector('input[name="singleMode"]:checked').value;
+  const isWhen = mode === 'when';
+  $('#sWhenCard').style.display = isWhen ? '' : 'none';
+  $('#sHowCard').style.display = isWhen ? 'none' : '';
+  $('#sRunBtn').textContent = isWhen ? 'Run Forecast' : 'Calculate Capacity';
+  $('#sResults').classList.remove('visible');
+}
+$$('input[name="singleMode"]').forEach(r => r.addEventListener('change', sUpdateMode));
+
+// ══════════════════════════════════
+// ── Multi-Feature Forecast ──
+// ══════════════════════════════════
+const wipSlider = $('#wipSlider');
+const wipVal = $('#wipVal');
+const featuresBody = $('#featuresTable tbody');
+
+$('#startDate').valueAsDate = new Date();
+
+let featureId = 0;
+function getTpMode() {
+  const el = document.querySelector('input[name="tpMode"]:checked');
+  return el ? el.value : 'shared';
+}
+
+function updateModeUI() {
+  const mode = getTpMode();
+  const isShared = mode === 'shared';
+  // Show/hide columns
+  $$('.col-alloc').forEach(el => el.style.display = isShared ? '' : 'none');
+  $$('.col-tp').forEach(el => el.style.display = isShared ? 'none' : '');
+  $$('.cell-alloc').forEach(el => el.style.display = isShared ? '' : 'none');
+  $$('.cell-tp').forEach(el => el.style.display = isShared ? 'none' : '');
+  // Show/hide shared throughput input & WIP
+  $('#sharedTpCard').style.display = isShared ? '' : 'none';
+  if ($('#wipRow')) $('#wipRow').style.display = isShared ? 'flex' : 'none';
+  updateOutcome();
+}
+
+$$('input[name="tpMode"]').forEach(r => r.addEventListener('change', updateModeUI));
+
+function addFeatureRow(name, low, high, split, alloc, tp) {
+  const id = featureId++;
+  const mode = getTpMode();
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" value="${name || `Feature ${id + 1}`}" class="feat-name"></td>
+    <td><input type="number" min="1" value="${low || 10}" class="feat-low" style="width:100%"></td>
+    <td><input type="number" min="1" value="${high || low || 10}" class="feat-high" style="width:100%"></td>
+    <td><input type="text" value="${split || ''}" class="feat-split" placeholder="1.0" style="width:100%"></td>
+    <td class="cell-alloc" style="display:${mode === 'shared' ? '' : 'none'}"><input type="number" min="1" max="100" value="${alloc || ''}" class="feat-alloc" placeholder="Auto"></td>
+    <td class="cell-tp" style="display:${mode !== 'shared' ? '' : 'none'}"><input type="text" value="${tp || ''}" class="feat-tp" placeholder="e.g. 3,2,4,3"></td>
+    <td><button class="remove-btn" title="Remove">&times;</button></td>`;
+  tr.querySelector('.remove-btn').onclick = () => { tr.remove(); syncWip(); updateOutcome(); };
+  featuresBody.appendChild(tr);
+  syncWip();
+  updateOutcome();
+}
+
+function syncWip() {
+  const count = featuresBody.children.length;
+  if (count > parseInt(wipSlider.value)) { wipSlider.value = count; wipVal.textContent = count; }
+}
+
+function parseSplitRate(str) {
+  if (!str || !str.trim()) return { lo: 1, hi: 1 };
+  const parts = str.split('-').map(s => parseFloat(s.trim())).filter(n => n > 0);
+  if (parts.length === 2) return { lo: Math.min(parts[0], parts[1]), hi: Math.max(parts[0], parts[1]) };
+  if (parts.length === 1) return { lo: parts[0], hi: parts[0] };
+  return { lo: 1, hi: 1 };
+}
+
+function getFeatures() {
+  const mode = getTpMode();
+  return [...featuresBody.querySelectorAll('tr')].map(tr => {
+    const low = parseInt(tr.querySelector('.feat-low').value) || 1;
+    const high = parseInt(tr.querySelector('.feat-high').value) || low;
+    const split = parseSplitRate(tr.querySelector('.feat-split').value);
+    const f = {
+      name: tr.querySelector('.feat-name').value,
+      low: Math.min(low, high),
+      high: Math.max(low, high),
+      split,
+    };
+    if (mode === 'shared') {
+      const allocVal = tr.querySelector('.feat-alloc').value.trim();
+      f.alloc = allocVal ? parseInt(allocVal) : null;
+    } else {
+      const tpStr = tr.querySelector('.feat-tp').value;
+      f.throughput = tpStr.split(',').map(s => parseInt(s.trim())).filter(n => n > 0);
+    }
+    return f;
+  });
+}
+
+// Randomize scope for a feature using Size-Growth-Pace model (Magennis)
+function randomizeScope(feature) {
+  const base = feature.low + Math.floor(Math.random() * (feature.high - feature.low + 1));
+  const splitMult = feature.split.lo + Math.random() * (feature.split.hi - feature.split.lo);
+  return Math.ceil(base * splitMult);
+}
+
+function updateOutcome() {
+  const mode = getTpMode();
+  if (mode === 'per-feature') {
+    $('#outcomeNote').innerHTML = '<span style="color:#888">Per-feature mode: each feature uses its own throughput data independently.</span>';
+    return;
+  }
+  const tp = parseThroughput('#throughput');
+  const wip = parseInt(wipSlider.value);
+  if (tp.length === 0) { $('#outcomeNote').innerHTML = ''; return; }
+  const avgTp = (tp.reduce((a, b) => a + b, 0) / tp.length).toFixed(1);
+  const il = getIterLen('iterLenSel');
+  const perLabel = il === 1 ? 'per week' : 'per iteration';
+  const dq = dataQuality(tp.length);
+  const dqColor = dq >= 85 ? 'var(--green)' : dq >= 70 ? 'var(--orange)' : 'var(--red)';
+  $('#outcomeNote').innerHTML = `WIP: <strong>${wip}</strong> &middot; Avg throughput: <strong>${avgTp}</strong> ${perLabel} &middot; Data quality: <strong style="color:${dqColor}">${dq.toFixed(0)}%</strong> (${tp.length} samples)`;
+}
+
+wipSlider.oninput = () => { wipVal.textContent = wipSlider.value; updateOutcome(); };
+$('#addFeature').onclick = () => addFeatureRow();
+$('#throughput').oninput = updateOutcome;
+
+addFeatureRow('Feature 1', 10, 14);
+addFeatureRow('Feature 2', 6, 10);
+addFeatureRow('Feature 3', 12, 18);
+
+// ── Simulation engine ──
+
+// Shared pool mode: throughput distributed across WIP-limited active features
+function runFeatureSimulationShared(throughputData, features, numTrials, wipLimit) {
+  const results = [];
+  const featureWeeks = features.map(() => []);
+  const nominalTotal = features.reduce((s, f) => s + Math.round((f.low + f.high) / 2), 0);
+  const sampleRate = Math.max(1, Math.floor(numTrials / 100));
+  const burndownPaths = [];
+  const wip = wipLimit || features.length; // default: all parallel
+
+  // Precompute allocation weights
+  const hasCustomAlloc = features.some(f => f.alloc != null);
+  let weights = null;
+  if (hasCustomAlloc) {
+    const customTotal = features.reduce((s, f) => s + (f.alloc || 0), 0);
+    const nullCount = features.filter(f => f.alloc == null).length;
+    const autoEach = nullCount > 0 ? Math.max(0, (100 - customTotal) / nullCount) : 0;
+    weights = features.map(f => f.alloc != null ? f.alloc : autoEach);
+    const wSum = weights.reduce((a, b) => a + b, 0);
+    if (wSum > 0) weights = weights.map(w => w / wSum);
+  }
+
+  for (let t = 0; t < numTrials; t++) {
+    // Size-Growth-Pace: randomize scope per trial (Magennis)
+    const remaining = features.map(f => randomizeScope(f));
+    const done = features.map(() => 0);
+    const trialTotal = remaining.reduce((s, r) => s + r, 0);
+    let iter = 0;
+    const storePath = (t % sampleRate === 0) && burndownPaths.length < 100;
+    const path = storePath ? [trialTotal] : null;
+
+    // WIP-limited active pool + backlog queue (priority = table order)
+    const activeSet = new Set();
+    let nextInQueue = 0;
+    // Fill initial active pool up to WIP limit
+    while (activeSet.size < wip && nextInQueue < features.length) {
+      activeSet.add(nextInQueue);
+      nextInQueue++;
+    }
+
+    while (remaining.some(r => r > 0)) {
+      iter++;
+      const tp = throughputData[Math.floor(Math.random() * throughputData.length)];
+      // Only distribute throughput to WIP-limited active features
+      const activeIndices = [];
+      for (const i of activeSet) { if (remaining[i] > 0) activeIndices.push(i); }
+      if (activeIndices.length === 0) break;
+
+      for (let u = 0; u < tp; u++) {
+        if (activeIndices.length === 0) break;
+        let pick;
+        if (weights) {
+          // Weighted random pick among active features
+          let activeWeights = activeIndices.map(i => weights[i]);
+          const awSum = activeWeights.reduce((a, b) => a + b, 0);
+          if (awSum <= 0) { pick = Math.floor(Math.random() * activeIndices.length); }
+          else {
+            const r = Math.random() * awSum;
+            let cum = 0;
+            pick = 0;
+            for (let k = 0; k < activeWeights.length; k++) {
+              cum += activeWeights[k];
+              if (r < cum) { pick = k; break; }
+            }
+          }
+        } else {
+          pick = Math.floor(Math.random() * activeIndices.length);
+        }
+        const idx = activeIndices[pick];
+        remaining[idx]--;
+        if (remaining[idx] <= 0) {
+          remaining[idx] = 0;
+          if (done[idx] === 0) done[idx] = iter;
+          activeIndices.splice(pick, 1);
+          // Pull next feature from backlog into active pool
+          activeSet.delete(idx);
+          if (nextInQueue < features.length) {
+            activeSet.add(nextInQueue);
+            activeIndices.push(nextInQueue); // can receive throughput this same iteration
+            nextInQueue++;
+          }
+        }
+      }
+
+      if (storePath) {
+        let sum = 0;
+        for (let i = 0; i < remaining.length; i++) sum += remaining[i];
+        path.push(sum);
+      }
+      if (iter > 200) break;
+    }
+
+    for (let i = 0; i < done.length; i++) {
+      if (done[i] === 0) done[i] = iter;
+      featureWeeks[i].push(done[i]);
+    }
+    results.push(iter);
+    if (storePath) burndownPaths.push(path);
+  }
+
+  results.sort((a, b) => a - b);
+  featureWeeks.forEach(fw => fw.sort((a, b) => a - b));
+  return { results, featureWeeks, burndownPaths };
+}
+
+// Per-feature mode: each feature has its own throughput, simulated independently
+function runFeatureSimulationPerFeature(features, numTrials) {
+  const featureWeeks = features.map(() => []);
+  const results = [];
+  const nominalTotal = features.reduce((s, f) => s + Math.round((f.low + f.high) / 2), 0);
+  const sampleRate = Math.max(1, Math.floor(numTrials / 100));
+  const burndownPaths = [];
+
+  for (let t = 0; t < numTrials; t++) {
+    const remaining = features.map(f => randomizeScope(f));
+    const trialTotal = remaining.reduce((s, r) => s + r, 0);
+    const done = features.map(() => 0);
+    let maxIter = 0;
+    const storePath = (t % sampleRate === 0) && burndownPaths.length < 100;
+    const path = storePath ? [trialTotal] : null;
+
+    // Simulate each feature independently, track iteration-by-iteration for burndown
+    // We iterate until all features are done
+    let iter = 0;
+    while (remaining.some(r => r > 0)) {
+      iter++;
+      for (let i = 0; i < features.length; i++) {
+        if (remaining[i] <= 0) continue;
+        const fTp = features[i].throughput;
+        if (!fTp || fTp.length === 0) continue;
+        const tp = fTp[Math.floor(Math.random() * fTp.length)];
+        remaining[i] = Math.max(0, remaining[i] - tp);
+        if (remaining[i] === 0 && done[i] === 0) done[i] = iter;
+      }
+      if (storePath) {
+        let sum = 0;
+        for (let i = 0; i < remaining.length; i++) sum += remaining[i];
+        path.push(sum);
+      }
+      if (iter > 200) break;
+    }
+
+    for (let i = 0; i < done.length; i++) {
+      if (done[i] === 0) done[i] = iter;
+      featureWeeks[i].push(done[i]);
+    }
+    results.push(iter);
+    if (storePath) burndownPaths.push(path);
+  }
+
+  results.sort((a, b) => a - b);
+  featureWeeks.forEach(fw => fw.sort((a, b) => a - b));
+  return { results, featureWeeks, burndownPaths };
+}
+
+// Portfolio/Cut-line simulation (Magennis): features processed SEQUENTIALLY
+// Throughput accumulates; each feature completes when cumulative throughput reaches its cumulative scope goal
+function runPortfolioSimulation(throughputData, features, numTrials) {
+  // featureIterations[i] = array of completion iterations across all trials
+  const featureIterations = features.map(() => []);
+
+  for (let t = 0; t < numTrials; t++) {
+    // Randomize scope per feature, then build cumulative goals
+    const scopes = features.map(f => randomizeScope(f));
+    const cumulativeGoals = [];
+    let cum = 0;
+    for (let i = 0; i < scopes.length; i++) {
+      cum += scopes[i];
+      cumulativeGoals.push(cum);
+    }
+
+    // Accumulate throughput iteration by iteration
+    let totalDone = 0;
+    let iter = 0;
+    let nextFeature = 0; // index of next feature to complete
+
+    while (nextFeature < features.length && iter < 500) {
+      iter++;
+      const tp = throughputData[Math.floor(Math.random() * throughputData.length)];
+      totalDone += tp;
+
+      // Check if we've reached any cumulative goals
+      while (nextFeature < features.length && totalDone >= cumulativeGoals[nextFeature]) {
+        featureIterations[nextFeature].push(iter);
+        nextFeature++;
+      }
+    }
+
+    // If we hit the safety limit, record remaining features at max iter
+    while (nextFeature < features.length) {
+      featureIterations[nextFeature].push(iter);
+      nextFeature++;
+    }
+  }
+
+  featureIterations.forEach(fi => fi.sort((a, b) => a - b));
+  return { featureIterations };
+}
+
+function runCapacitySimulation(throughputData, weeks, numTrials) {
+  const results = [];
+  const sampleRate = Math.max(1, Math.floor(numTrials / 100));
+  const paths = [];
+  for (let t = 0; t < numTrials; t++) {
+    let total = 0;
+    const storePath = (t % sampleRate === 0) && paths.length < 100;
+    const path = storePath ? [0] : null;
+    for (let w = 0; w < weeks; w++) {
+      total += throughputData[Math.floor(Math.random() * throughputData.length)];
+      if (storePath) path.push(total);
+    }
+    results.push(total);
+    if (storePath) paths.push(path);
+  }
+  results.sort((a, b) => a - b);
+  return { results, paths };
+}
+
+// ══════════════════════════════════
+// ── Charts ──
+// ══════════════════════════════════
+function setupCanvas(canvas, heightPx) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.parentElement.clientWidth - 2;
+  const h = heightPx || 300;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+  return { ctx, w, h };
+}
+
+// ── Burndown chart ──
+function drawBurndown(canvas, paths, totalRemaining, confidenceWeeks, xAxisLabel) {
+  const { ctx, w, h } = setupCanvas(canvas, 260);
+  const margin = { top: 16, right: 20, bottom: 36, left: 48 };
+  const cw = w - margin.left - margin.right;
+  const ch = h - margin.top - margin.bottom;
+
+  const maxWeek = Math.max(...paths.map(p => p.length - 1));
+  const xScale = v => margin.left + (v / maxWeek) * cw;
+  const yScale = v => margin.top + (1 - v / totalRemaining) * ch;
+
+  // Grid
+  ctx.strokeStyle = '#eee'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const val = Math.round(totalRemaining * i / 4);
+    const y = yScale(val);
+    ctx.beginPath(); ctx.moveTo(margin.left, y); ctx.lineTo(w - margin.right, y); ctx.stroke();
+    ctx.fillStyle = '#999'; ctx.font = '10px -apple-system, sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(val, margin.left - 6, y + 3);
+  }
+
+  // X labels
+  ctx.fillStyle = '#999'; ctx.textAlign = 'center'; ctx.font = '10px -apple-system, sans-serif';
+  const xStep = Math.max(1, Math.ceil(maxWeek / 12));
+  for (let i = 0; i <= maxWeek; i += xStep) {
+    ctx.fillText(i, xScale(i), h - margin.bottom + 16);
+  }
+
+  // Trial paths
+  ctx.globalAlpha = Math.max(0.04, Math.min(0.25, 8 / paths.length));
+  ctx.strokeStyle = '#4a8fe7'; ctx.lineWidth = 1.2;
+  paths.forEach(path => {
+    ctx.beginPath();
+    path.forEach((v, i) => { i === 0 ? ctx.moveTo(xScale(i), yScale(v)) : ctx.lineTo(xScale(i), yScale(v)); });
+    ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+
+  // Confidence markers at y=0
+  const lineColors = { 50: '#c0392b', 70: '#e67e22', 85: '#f1c40f', 95: '#27ae60' };
+  Object.entries(confidenceWeeks).forEach(([p, wk]) => {
+    const x = xScale(wk);
+    ctx.strokeStyle = lineColors[p] || '#888';
+    ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(x, margin.top); ctx.lineTo(x, yScale(0)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.font = 'bold 10px -apple-system, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(`${p}%`, x, margin.top - 4);
+  });
+
+  // Axis titles
+  ctx.fillStyle = '#888'; ctx.font = '11px -apple-system, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(xAxisLabel || 'Week', margin.left + cw / 2, h - 2);
+  ctx.save(); ctx.translate(12, margin.top + ch / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Remaining items', 0, 0); ctx.restore();
+}
+
+// ── Buildup chart (capacity paths — items going UP) ──
+function drawBuildup(canvas, paths, maxItems, confidenceIters, xAxisLabel) {
+  const { ctx, w, h } = setupCanvas(canvas, 260);
+  const margin = { top: 16, right: 20, bottom: 36, left: 48 };
+  const cw = w - margin.left - margin.right;
+  const ch = h - margin.top - margin.bottom;
+
+  const maxIter = Math.max(...paths.map(p => p.length - 1));
+  const xScale = v => margin.left + (v / maxIter) * cw;
+  const yScale = v => margin.top + (1 - v / maxItems) * ch;
+
+  // Grid
+  ctx.strokeStyle = '#eee'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const val = Math.round(maxItems * i / 4);
+    const y = yScale(val);
+    ctx.beginPath(); ctx.moveTo(margin.left, y); ctx.lineTo(w - margin.right, y); ctx.stroke();
+    ctx.fillStyle = '#999'; ctx.font = '10px -apple-system, sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(val, margin.left - 6, y + 3);
+  }
+
+  // X labels
+  ctx.fillStyle = '#999'; ctx.textAlign = 'center'; ctx.font = '10px -apple-system, sans-serif';
+  const xStep = Math.max(1, Math.ceil(maxIter / 12));
+  for (let i = 0; i <= maxIter; i += xStep) {
+    ctx.fillText(i, xScale(i), h - margin.bottom + 16);
+  }
+
+  // Trial paths
+  ctx.globalAlpha = Math.max(0.04, Math.min(0.25, 8 / paths.length));
+  ctx.strokeStyle = '#27ae60'; ctx.lineWidth = 1.2;
+  paths.forEach(path => {
+    ctx.beginPath();
+    path.forEach((v, i) => { i === 0 ? ctx.moveTo(xScale(i), yScale(v)) : ctx.lineTo(xScale(i), yScale(v)); });
+    ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+
+  // Confidence markers at final iteration
+  const lineColors = { 50: '#c0392b', 70: '#e67e22', 85: '#f1c40f', 95: '#27ae60' };
+  Object.entries(confidenceIters).forEach(([p, val]) => {
+    const y = yScale(val);
+    ctx.strokeStyle = lineColors[p] || '#888';
+    ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(margin.left, y); ctx.lineTo(w - margin.right, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.font = 'bold 10px -apple-system, sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(`${p}%: ${val}`, w - margin.right + 4, y + 3);
+  });
+
+  // Axis titles
+  ctx.fillStyle = '#888'; ctx.font = '11px -apple-system, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(xAxisLabel || 'Iteration', margin.left + cw / 2, h - 2);
+  ctx.save(); ctx.translate(12, margin.top + ch / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Items completed', 0, 0); ctx.restore();
+}
+
+// ── Histogram with tooltip support ──
+// Returns bar layout info for tooltip hit-testing
+function drawHistogram(canvas, sortedData, confidenceLevels, xLabel, mode, barColor) {
+  const { ctx, w, h } = setupCanvas(canvas, 300);
+  const margin = { top: 24, right: 20, bottom: 40, left: 48 };
+  const cw = w - margin.left - margin.right;
+  const ch = h - margin.top - margin.bottom;
+
+  const minVal = sortedData[0];
+  const maxVal = sortedData[sortedData.length - 1];
+
+  // For large ranges, use binning
+  const range = maxVal - minVal + 1;
+  let binSize = 1;
+  if (range > 60) binSize = Math.ceil(range / 50);
+
+  const bins = [];
+  for (let v = minVal; v <= maxVal; v += binSize) {
+    bins.push({ start: v, end: Math.min(v + binSize - 1, maxVal), count: 0 });
+  }
+  sortedData.forEach(v => {
+    const idx = Math.min(Math.floor((v - minVal) / binSize), bins.length - 1);
+    bins[idx].count++;
+  });
+
+  const maxCount = Math.max(...bins.map(b => b.count));
+
+  // Compute confidence values
+  const confValues = {};
+  confidenceLevels.forEach(p => {
+    if (mode === 'capacity') {
+      // For capacity: X% confidence means X% of trials exceeded this value
+      // So take the (100-X)th percentile
+      confValues[p] = percentile(sortedData, 100 - p);
+    } else {
+      confValues[p] = percentile(sortedData, p);
+    }
+  });
+
+  const maxBarW = bins.length <= 8 ? 80 : bins.length <= 20 ? 50 : 36;
+  const barW = Math.max(4, Math.min(maxBarW, (cw / bins.length) - 2));
+  const gap = Math.max(1, (cw - barW * bins.length) / Math.max(1, bins.length));
+  const totalBarArea = bins.length * barW + Math.max(0, bins.length - 1) * gap;
+  const offsetX = (cw - totalBarArea) / 2;
+
+  // Y gridlines
+  ctx.strokeStyle = '#eee'; ctx.lineWidth = 1;
+  ctx.fillStyle = '#999'; ctx.font = '10px -apple-system, sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const val = Math.round(maxCount * i / 5);
+    const y = margin.top + ch - (val / maxCount) * ch;
+    ctx.beginPath(); ctx.moveTo(margin.left, y); ctx.lineTo(w - margin.right, y); ctx.stroke();
+    ctx.fillText(val, margin.left - 6, y + 3);
+  }
+
+  // Bars
+  const barLayout = [];
+  bins.forEach((bin, i) => {
+    const x = margin.left + offsetX + i * (barW + gap);
+    const barH = maxCount > 0 ? (bin.count / maxCount) * ch : 0;
+    const y = margin.top + ch - barH;
+    const binMid = binSize === 1 ? bin.start : Math.round((bin.start + bin.end) / 2);
+
+    let color;
+    if (barColor) {
+      color = barColor;
+    } else {
+      // Smooth gradient via HSL: green (high confidence) → yellow → orange → red
+      let t;
+      if (mode === 'capacity') {
+        t = bins.length > 1 ? 1 - (i / (bins.length - 1)) : 0;
+      } else {
+        t = bins.length > 1 ? i / (bins.length - 1) : 0;
+      }
+      const hue = Math.round(130 * (1 - t));
+      const sat = Math.round(65 + 20 * Math.sin(t * Math.PI));
+      const lit = Math.round(40 + 10 * Math.sin(t * Math.PI));
+      color = `hsl(${hue}, ${sat}%, ${lit}%)`;
+    }
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, barW, barH, [2, 2, 0, 0]);
+    else ctx.rect(x, y, barW, barH);
+    ctx.fill();
+
+    // Cumulative count up to this bin
+    let cumCount = 0;
+    for (let j = 0; j <= i; j++) cumCount += bins[j].count;
+
+    barLayout.push({ x, y, w: barW, h: barH, bin, cumCount, total: sortedData.length });
+  });
+
+  // X labels
+  ctx.fillStyle = '#999'; ctx.textAlign = 'center'; ctx.font = '10px -apple-system, sans-serif';
+  const labelEvery = bins.length > 30 ? Math.ceil(bins.length / 15) : 1;
+  bins.forEach((bin, i) => {
+    if (i % labelEvery === 0) {
+      const label = binSize === 1 ? bin.start : `${bin.start}`;
+      ctx.fillText(label, margin.left + offsetX + i * (barW + gap) + barW / 2, margin.top + ch + 16);
+    }
+  });
+
+  // Axis titles
+  ctx.fillStyle = '#888'; ctx.font = '11px -apple-system, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(xLabel || 'Value', margin.left + cw / 2, h - 4);
+  ctx.save(); ctx.translate(12, margin.top + ch / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Frequency', 0, 0); ctx.restore();
+
+  // Confidence lines
+  const lineColors = { 50: '#c0392b', 70: '#e67e22', 85: '#f1c40f', 95: '#27ae60' };
+  confidenceLevels.forEach(p => {
+    const val = confValues[p];
+    // Find bar index for this value
+    let barIdx = -1;
+    for (let i = 0; i < bins.length; i++) {
+      if (val >= bins[i].start && val <= bins[i].end) { barIdx = i; break; }
+    }
+    if (barIdx < 0) return;
+    const x = margin.left + offsetX + barIdx * (barW + gap) + barW / 2;
+    ctx.strokeStyle = lineColors[p] || '#888';
+    ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(x, margin.top); ctx.lineTo(x, margin.top + ch); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.font = 'bold 10px -apple-system, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(`${p}%`, x, margin.top - 8);
+  });
+
+  return { barLayout, margin, ch };
+}
+
+// ── Tooltip handler factory ──
+function attachTooltip(canvas, tooltipEl, barLayoutRef) {
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const mx = (e.clientX - rect.left);
+    const my = (e.clientY - rect.top);
+
+    const layout = barLayoutRef.current;
+    if (!layout) { tooltipEl.style.display = 'none'; return; }
+
+    let hit = null;
+    for (const bar of layout) {
+      if (mx >= bar.x && mx <= bar.x + bar.w && my >= bar.y && my <= bar.y + bar.h) {
+        hit = bar; break;
+      }
+    }
+
+    if (!hit) { tooltipEl.style.display = 'none'; return; }
+
+    const pct = (hit.cumCount / hit.total * 100).toFixed(1);
+    const binLabel = hit.bin.start === hit.bin.end ? hit.bin.start : `${hit.bin.start}-${hit.bin.end}`;
+    tooltipEl.innerHTML = `<span class="tt-label">Value: ${binLabel}</span><br>Trials: <span class="tt-val">${hit.bin.count}</span> (${(hit.bin.count / hit.total * 100).toFixed(1)}%)<br>Cumulative: <span class="tt-val">${pct}%</span>`;
+    tooltipEl.style.display = 'block';
+
+    // Position
+    let tx = mx + 12;
+    let ty = my - 10;
+    if (tx + 180 > rect.width) tx = mx - 180;
+    if (ty < 0) ty = my + 20;
+    tooltipEl.style.left = tx + 'px';
+    tooltipEl.style.top = ty + 'px';
+  });
+
+  canvas.addEventListener('mouseleave', () => { tooltipEl.style.display = 'none'; });
+}
+
+// Refs for tooltip bar data
+const sHistBarRef = { current: null };
+attachTooltip($('#sHistogram'), $('#sHistTooltip'), sHistBarRef);
+const histBarRef = { current: null };
+attachTooltip($('#histogram'), $('#histTooltip'), histBarRef);
+const mfCapHistBarRef = { current: null };
+attachTooltip($('#mfCapHistogram'), $('#mfCapHistTooltip'), mfCapHistBarRef);
+
+// ── Stats display ──
+function showStats(el, sortedData, sampleCount) {
+  const n = sortedData.length;
+  const mn = sortedData[0];
+  const mx = sortedData[n - 1];
+  const avg = mean(sortedData).toFixed(1);
+  const med = Math.round(percentile(sortedData, 50));
+  const sd = stdev(sortedData).toFixed(1);
+  const dq = sampleCount ? dataQuality(sampleCount) : null;
+  const dqColor = dq >= 85 ? 'var(--green)' : dq >= 70 ? 'var(--orange)' : 'var(--red)';
+  el.innerHTML = `
+    <span class="stat-chip">Trials: <strong>${n.toLocaleString()}</strong></span>
+    <span class="stat-chip">Min: <strong>${mn}</strong></span>
+    <span class="stat-chip">Max: <strong>${mx}</strong></span>
+    <span class="stat-chip">Mean: <strong>${avg}</strong></span>
+    <span class="stat-chip">Median: <strong>${med}</strong></span>
+    <span class="stat-chip">Std Dev: <strong>${sd}</strong></span>
+    ${dq !== null ? `<span class="stat-chip" title="Magennis (n-1)/(n+1): confidence that ${sampleCount} samples represent the true throughput range">Data quality: <strong style="color:${dqColor}">${dq.toFixed(0)}%</strong> <span style="font-size:0.65rem">(${sampleCount} samples)</span></span>` : ''}`;
+}
+
+// ══════════════════════════════════
+// ── Single Feature: Run ──
+// ══════════════════════════════════
+$('#sRunBtn').onclick = () => {
+  const throughputData = parseThroughput('#sThroughput');
+  if (throughputData.length < 2) { alert('Enter at least 2 throughput data points.'); return; }
+  const il = getIterLen('sIterLenSel');
+  const numTrials = getTrialCount('sTrials');
+  const mode = document.querySelector('input[name="singleMode"]:checked').value;
+
+  const btn = $('#sRunBtn');
+  btn.textContent = 'Running...'; btn.disabled = true;
+
+  setTimeout(() => {
+    if (mode === 'when') {
+      const low = parseInt($('#sLow').value) || 1;
+      const high = parseInt($('#sHigh').value) || low;
+      const split = parseSplitRate($('#sSplit').value);
+      const feature = { low: Math.min(low,high), high: Math.max(low,high), split, name: 'Feature' };
+      const sim = runFeatureSimulationShared(throughputData, [feature], numTrials);
+      const { results, burndownPaths } = sim;
+      const startDate = $('#sStartDate').value;
+      const levels = [50, 70, 85, 95];
+      const confWeeks = {};
+      levels.forEach(p => confWeeks[p] = percentileInt(results, p));
+
+      $('#sResults').classList.add('visible');
+      $('#sBurndownCard').style.display = '';
+      $('#sConfCard').style.display = '';
+      $('#sCapCard').style.display = 'none';
+      $('#sCapPathsCard').style.display = 'none';
+      $('#sHistTitle').textContent = 'Completion Distribution';
+
+      // Burndown chart
+      const nominalTotal = Math.round((feature.low + feature.high) / 2);
+      drawBurndown($('#sBurndownChart'), burndownPaths, nominalTotal, confWeeks, il === 1 ? 'Week' : 'Iteration');
+
+      const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
+      $('#sConfGrid').innerHTML = levels.map((p,i) => {
+        const iters = confWeeks[p];
+        const dateStr = addWeeksToDate(startDate, iters, il);
+        return `<div class="conf-card" style="border-left:3px solid ${colors[i]}">
+          <div class="pct">${p}% likely</div>
+          <div class="val">${iterLabel(il, iters)}</div>
+          ${dateStr ? `<div class="date">${dateStr}</div>` : ''}
+        </div>`;
+      }).join('');
+
+      const xLabel = il === 1 ? 'Weeks to complete' : 'Iterations to complete';
+      const layout = drawHistogram($('#sHistogram'), results, levels, xLabel, 'duration', '#4a8fe7');
+      sHistBarRef.current = layout.barLayout;
+      showStats($('#sStatsRow'), results, throughputData.length);
+
+    } else {
+      const horizonWeeks = parseInt($('#sHorizon').value) || 12;
+      const rightSize = parseInt($('#sRightSize').value) || 8;
+      const iterations = Math.floor(horizonWeeks / il);
+      if (iterations < 1) { alert(`Horizon (${horizonWeeks} weeks) is shorter than one iteration (${il} weeks).`); btn.textContent='Calculate Capacity'; btn.disabled=false; return; }
+
+      const capSim = runCapacitySimulation(throughputData, iterations, numTrials);
+      const { results, paths: capPaths } = capSim;
+      const levels = [50, 70, 85, 95];
+
+      $('#sResults').classList.add('visible');
+      $('#sBurndownCard').style.display = 'none';
+      $('#sConfCard').style.display = 'none';
+      $('#sCapCard').style.display = '';
+      $('#sCapPathsCard').style.display = '';
+      $('#sHistTitle').textContent = 'Items Forecast Distribution';
+
+      const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
+      const labels = ['Aggressive','Moderate','Recommended','Conservative'];
+      $('#sCapGrid').innerHTML = levels.map((p,i) => {
+        const items = Math.floor(percentile(results, 100-p));
+        const feats = Math.floor(items / rightSize);
+        return `<div class="capacity-card" style="border-top:3px solid ${colors[i]}">
+          <div class="cap-label">${p}% confidence &middot; ${labels[i]}</div>
+          <div class="cap-val">${feats} features</div>
+          <div class="cap-sub">${items} items &divide; ${rightSize} right-size</div>
+        </div>`;
+      }).join('');
+
+      const layout = drawHistogram($('#sHistogram'), results, levels, `Total items in ${horizonWeeks} weeks (${iterations} iter${iterations!==1?'s':''})`, 'capacity', '#4a8fe7');
+      sHistBarRef.current = layout.barLayout;
+      showStats($('#sStatsRow'), results, throughputData.length);
+
+      // Buildup paths chart
+      const confItems = {};
+      levels.forEach(p => confItems[p] = Math.floor(percentile(results, 100-p)));
+      const maxItems = results[results.length - 1];
+      drawBuildup($('#sCapPathsChart'), capPaths, maxItems, confItems, il === 1 ? 'Week' : 'Iteration');
+    }
+
+    btn.textContent = mode === 'when' ? 'Run Forecast' : 'Calculate Capacity';
+    btn.disabled = false;
+    setTimeout(() => $('#sResults').scrollIntoView({ behavior:'smooth', block:'start' }), 50);
+  }, 30);
+};
+
+// ══════════════════════════════════
+// ── Multi-Feature: Mode Toggle ──
+// ══════════════════════════════════
+function mfUpdateMode() {
+  const mode = document.querySelector('input[name="mfMode"]:checked').value;
+  const isWhen = mode === 'when';
+  // Toggle input visibility
+  $('#mfFeaturesCard').style.display = isWhen ? '' : 'none';
+  $('#mfCapCard').style.display = isWhen ? 'none' : '';
+  // Toggle shared throughput visibility (always show in "how many" mode)
+  if (!isWhen) {
+    $('#sharedTpCard').style.display = '';
+    if ($('#wipRow')) $('#wipRow').style.display = 'none';
+  } else {
+    updateModeUI();
+  }
+  $('#runBtn').textContent = isWhen ? 'Run Simulation' : 'Calculate Capacity';
+  $('#results').classList.remove('visible');
+}
+$$('input[name="mfMode"]').forEach(r => r.addEventListener('change', mfUpdateMode));
+
+// ══════════════════════════════════
+// ── Multi-Feature Forecast: Run ──
+// ══════════════════════════════════
+$('#runBtn').onclick = () => {
+  const mfMode = document.querySelector('input[name="mfMode"]:checked').value;
+
+  // ── "How many can I finish?" mode ──
+  if (mfMode === 'how') {
+    const throughputData = parseThroughput('#throughput');
+    if (throughputData.length < 2) { alert('Enter at least 2 throughput data points.'); return; }
+    const il = getIterLen('iterLenSel');
+    const horizonWeeks = parseInt($('#mfHorizon').value) || 12;
+    const rightSize = parseInt($('#mfRightSize').value) || 8;
+    const iterations = Math.floor(horizonWeeks / il);
+    if (iterations < 1) { alert(`Horizon (${horizonWeeks} weeks) is shorter than one iteration (${il} weeks).`); return; }
+    const numTrials = getTrialCount('trials');
+    const btn = $('#runBtn');
+    btn.textContent = 'Calculating...'; btn.disabled = true;
+
+    setTimeout(() => {
+      const capSim = runCapacitySimulation(throughputData, iterations, numTrials);
+      const { results, paths: capPaths } = capSim;
+      const levels = [50, 70, 85, 95];
+
+      $('#results').classList.add('visible');
+      // Hide "when" result cards, show capacity cards
+      $('#mfBurndownCard').style.display = 'none';
+      $('#mfHistCard').style.display = 'none';
+      $('#mfConfCard').style.display = 'none';
+      $('#mfFeatCard').style.display = 'none';
+      $('#mfPortfolioCard').style.display = 'none';
+      $('#mfCapResultCard').style.display = '';
+      $('#mfCapGridCard').style.display = '';
+
+      const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
+      const labels = ['Aggressive','Moderate','Recommended','Conservative'];
+      $('#mfCapGrid').innerHTML = levels.map((p,i) => {
+        const items = Math.floor(percentile(results, 100-p));
+        const feats = Math.floor(items / rightSize);
+        return `<div class="capacity-card" style="border-top:3px solid ${colors[i]}">
+          <div class="cap-label">${p}% confidence &middot; ${labels[i]}</div>
+          <div class="cap-val">${feats} features</div>
+          <div class="cap-sub">${items} items &divide; ${rightSize} right-size</div>
+        </div>`;
+      }).join('');
+
+      const layout = drawHistogram($('#mfCapHistogram'), results, levels, `Total items in ${horizonWeeks} weeks (${iterations} iter${iterations!==1?'s':''})`, 'capacity');
+      mfCapHistBarRef.current = layout.barLayout;
+      showStats($('#mfCapStatsRow'), results, throughputData.length);
+
+      btn.textContent = 'Calculate Capacity'; btn.disabled = false;
+      setTimeout(() => $('#results').scrollIntoView({ behavior:'smooth', block:'start' }), 50);
+    }, 30);
+    return;
+  }
+
+  // ── "When will it ship?" mode ──
+  // Show "when" result cards, hide capacity cards
+  $('#mfCapResultCard').style.display = 'none';
+  $('#mfCapGridCard').style.display = 'none';
+  $('#mfBurndownCard').style.display = '';
+  $('#mfHistCard').style.display = '';
+  $('#mfConfCard').style.display = '';
+  $('#mfFeatCard').style.display = '';
+  $('#mfPortfolioCard').style.display = '';
+
+  const mode = getTpMode();
+  const features = getFeatures();
+  if (features.length === 0) { alert('Add at least one feature.'); return; }
+
+  if (mode === 'shared') {
+    const throughputData = parseThroughput('#throughput');
+    if (throughputData.length < 2) { alert('Enter at least 2 throughput data points.'); return; }
+  } else {
+    // Validate per-feature throughput
+    for (const f of features) {
+      if (!f.throughput || f.throughput.length < 2) {
+        alert(`Feature "${f.name}" needs at least 2 throughput data points.`);
+        return;
+      }
+    }
+  }
+
+  const numTrials = getTrialCount('trials');
+  const btn = $('#runBtn');
+  btn.textContent = 'Running...'; btn.disabled = true;
+
+  // Use setTimeout to let UI update before heavy computation
+  setTimeout(() => {
+    let simResult;
+    if (mode === 'shared') {
+      const throughputData = parseThroughput('#throughput');
+      simResult = runFeatureSimulationShared(throughputData, features, numTrials, parseInt(wipSlider.value));
+    } else {
+      simResult = runFeatureSimulationPerFeature(features, numTrials);
+    }
+    const { results, featureWeeks, burndownPaths } = simResult;
+    const startDate = $('#startDate').value;
+    const il = getIterLen('iterLenSel');
+    const levels = [50, 70, 85, 95];
+
+    // Confidence values (use ceil for durations — you can't finish in half an iteration)
+    const confWeeks = {};
+    levels.forEach(p => confWeeks[p] = percentileInt(results, p));
+
+    // Data quality indicator
+    const tpCount = mode === 'shared' ? parseThroughput('#throughput').length : Math.min(...features.map(f => (f.throughput || []).length));
+    const dq = dataQuality(tpCount);
+
+    $('#results').classList.add('visible');
+
+    // Burndown — use max possible scope for y-axis scale
+    const nominalTotal = features.reduce((s, f) => s + Math.round((f.low + f.high) / 2), 0);
+    drawBurndown($('#burndownChart'), burndownPaths, nominalTotal, confWeeks, il === 1 ? 'Week' : 'Iteration');
+
+    // Histogram
+    const xLabel = il === 1 ? 'Weeks to complete' : 'Iterations to complete';
+    const layout = drawHistogram($('#histogram'), results, levels, xLabel, 'duration');
+    histBarRef.current = layout.barLayout;
+
+    // Stats + data quality
+    showStats($('#statsRow'), results, tpCount);
+
+    // Confidence cards
+    const colors = ['#c0392b', '#e67e22', '#f1c40f', '#27ae60'];
+    $('#confidenceGrid').innerHTML = levels.map((p, i) => {
+      const iters = confWeeks[p];
+      const dateStr = addWeeksToDate(startDate, iters, il);
+      return `<div class="conf-card" style="border-left: 3px solid ${colors[i]}">
+        <div class="pct">${p}% likely</div>
+        <div class="val">${iterLabel(il, iters)}</div>
+        ${dateStr ? `<div class="date">${dateStr}</div>` : ''}
+      </div>`;
+    }).join('');
+
+    // Per-feature table
+    $('#featResults').innerHTML = `<table>
+      <thead><tr><th>Feature</th><th>Scope</th><th>50%</th><th>85%</th><th>95%</th></tr></thead>
+      <tbody>${features.map((f, i) => {
+        const p50 = percentileInt(featureWeeks[i], 50);
+        const p85 = percentileInt(featureWeeks[i], 85);
+        const p95 = percentileInt(featureWeeks[i], 95);
+        const scopeLabel = f.low === f.high ? f.low : `${f.low}-${f.high}`;
+        return `<tr>
+          <td>${f.name}</td><td>${scopeLabel}</td>
+          <td>${iterLabel(il, p50)}${startDate ? ` <span style="color:#999;font-size:0.72rem">(${addWeeksToDate(startDate, p50, il)})</span>` : ''}</td>
+          <td>${iterLabel(il, p85)}${startDate ? ` <span style="color:#999;font-size:0.72rem">(${addWeeksToDate(startDate, p85, il)})</span>` : ''}</td>
+          <td>${iterLabel(il, p95)}${startDate ? ` <span style="color:#999;font-size:0.72rem">(${addWeeksToDate(startDate, p95, il)})</span>` : ''}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+
+    // Portfolio forecaster (sequential / Magennis Cut-Line)
+    // Only run for shared mode (sequential model needs shared throughput)
+    if (mode === 'shared') {
+      const throughputData = parseThroughput('#throughput');
+      const portfolio = runPortfolioSimulation(throughputData, features, numTrials);
+      const targetDate = $('#targetDate').value;
+      const confLevel = 85; // primary confidence for traffic light
+
+      // Build portfolio table
+      let tableHtml = `<table class="portfolio-table">
+        <thead><tr>
+          <th>#</th>
+          <th>Feature</th>
+          <th>Scope</th>
+          <th>50%</th>
+          <th>70%</th>
+          <th>85%</th>
+          <th>95%</th>
+          ${targetDate ? '<th>Status</th>' : ''}
+        </tr></thead><tbody>`;
+
+      // Calculate target iteration from target date
+      let targetIter = null;
+      if (targetDate && startDate) {
+        const start = new Date(startDate);
+        const target = new Date(targetDate);
+        const diffDays = (target - start) / (1000 * 60 * 60 * 24);
+        const diffWeeks = diffDays / 7;
+        targetIter = Math.floor(diffWeeks / il);
+      }
+
+      features.forEach((f, i) => {
+        const p50 = percentileInt(portfolio.featureIterations[i], 50);
+        const p70 = percentileInt(portfolio.featureIterations[i], 70);
+        const p85 = percentileInt(portfolio.featureIterations[i], 85);
+        const p95 = percentileInt(portfolio.featureIterations[i], 95);
+        const scopeLabel = f.low === f.high ? f.low : `${f.low}-${f.high}`;
+
+        // Traffic light based on 85th percentile vs target
+        let statusHtml = '';
+        let rowClass = '';
+        if (targetDate && targetIter !== null) {
+          if (p85 <= targetIter) {
+            statusHtml = `<td><span class="traffic-light tl-green"></span>On track</td>`;
+          } else if (p85 <= targetIter + 1) {
+            statusHtml = `<td><span class="traffic-light tl-yellow"></span>At risk</td>`;
+          } else {
+            statusHtml = `<td><span class="traffic-light tl-red"></span>Late</td>`;
+            rowClass = '';
+          }
+        }
+
+        // Check if this is the "cut line" — last feature that fits within target
+        if (targetDate && targetIter !== null && i > 0) {
+          const prevP85 = percentileInt(portfolio.featureIterations[i - 1], 85);
+          if (prevP85 <= targetIter && p85 > targetIter) {
+            rowClass = 'cutline-row';
+          }
+        }
+
+        tableHtml += `<tr class="${rowClass}">
+          <td class="pf-order">${i + 1}</td>
+          <td class="pf-name">${f.name}</td>
+          <td class="pf-scope">${scopeLabel}</td>
+          <td>${iterLabel(il, p50)}${startDate ? `<br><span style="color:#999;font-size:0.7rem">${addWeeksToDate(startDate, p50, il)}</span>` : ''}</td>
+          <td>${iterLabel(il, p70)}${startDate ? `<br><span style="color:#999;font-size:0.7rem">${addWeeksToDate(startDate, p70, il)}</span>` : ''}</td>
+          <td class="pf-date">${iterLabel(il, p85)}${startDate ? `<br><span style="color:#999;font-size:0.7rem">${addWeeksToDate(startDate, p85, il)}</span>` : ''}</td>
+          <td>${iterLabel(il, p95)}${startDate ? `<br><span style="color:#999;font-size:0.7rem">${addWeeksToDate(startDate, p95, il)}</span>` : ''}</td>
+          ${statusHtml}
+        </tr>`;
+      });
+
+      tableHtml += '</tbody></table>';
+
+      // Legend
+      if (targetDate) {
+        tableHtml += `<div class="portfolio-legend">
+          <span><span class="traffic-light tl-green"></span> On track (85% &le; target)</span>
+          <span><span class="traffic-light tl-yellow"></span> At risk (within 1 iteration)</span>
+          <span><span class="traffic-light tl-red"></span> Late (exceeds target)</span>
+          ${targetIter !== null ? `<span style="margin-left:auto; color:#666;">Target: <strong>${addWeeksToDate(startDate, targetIter, il)}</strong> (${iterLabel(il, targetIter)})</span>` : ''}
+        </div>`;
+      } else {
+        tableHtml += `<div class="portfolio-legend"><span style="color:#999;">Set a target date above to see traffic light status indicators.</span></div>`;
+      }
+
+      $('#portfolioResults').innerHTML = tableHtml;
+    } else {
+      // Per-feature mode: run portfolio for each feature independently (no sequential model)
+      $('#portfolioResults').innerHTML = '<p style="font-size:0.82rem; color:#999;">Portfolio sequential forecast is available in Shared Pool mode. In Per-Feature mode, each feature is independent &mdash; see the Per-Feature Breakdown above.</p>';
+    }
+
+    btn.textContent = 'Run Simulation'; btn.disabled = false;
+    setTimeout(() => $('#results').scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  }, 30);
+};
+
+// ══════════════════════════════════════════════════════
+// ── Multi-Team Product Forecast ──
+// ══════════════════════════════════════════════════════
+
+const MT_COLORS = ['#4a8fe7','#27ae60','#e67e22','#c0392b','#9b59b6','#1abc9c','#f39c12','#2980b9','#e91e63','#00bcd4'];
+let mtTeamId = 0;
+$('#mtStartDate').valueAsDate = new Date();
+
+function mtAddTeamRow(name, epic, low, high, split, tp, deps) {
+  const id = mtTeamId++;
+  const color = MT_COLORS[id % MT_COLORS.length];
+  const tbody = $('#mtTeamsBody');
+  const num = tbody.children.length + 1;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="color:#999;font-size:0.75rem;text-align:center;white-space:nowrap"><span class="team-color-dot" style="background:${color}"></span>${num}</td>
+    <td><input type="text" value="${name||'Team '+num}" class="mt-name" style="min-width:80px"></td>
+    <td><input type="text" value="${epic||'Epic '+num}" class="mt-epic" style="min-width:90px"></td>
+    <td><input type="number" min="1" value="${low||10}" class="mt-low" style="width:55px"></td>
+    <td><input type="number" min="1" value="${high||low||10}" class="mt-high" style="width:55px"></td>
+    <td><input type="text" value="${split||''}" class="mt-split" placeholder="1.0" style="width:65px"></td>
+    <td><input type="text" value="${tp||''}" class="mt-tp" placeholder="e.g. 3,5,4,2,6" style="min-width:150px"></td>
+    <td><input type="text" value="${deps||''}" class="mt-deps" placeholder="e.g. Team A" style="min-width:100px"></td>
+    <td><button class="remove-btn" title="Remove">&times;</button></td>`;
+  tr.querySelector('.remove-btn').onclick = () => { tr.remove(); mtRenumber(); };
+  tbody.appendChild(tr);
+}
+
+function mtRenumber() {
+  [...$('#mtTeamsBody').children].forEach((tr, i) => {
+    const c = MT_COLORS[i % MT_COLORS.length];
+    tr.cells[0].innerHTML = `<span class="team-color-dot" style="background:${c}"></span>${i+1}`;
+  });
+}
+
+$('#mtAddTeam').onclick = () => mtAddTeamRow();
+
+// Seed defaults
+mtAddTeamRow('Team Alpha','Backend API',12,18,'1.0-1.2','4,5,3,6,4,5,3,4','');
+mtAddTeamRow('Team Beta','Frontend UI',8,14,'1.0-1.3','3,4,4,5,2,4,3,5','');
+mtAddTeamRow('Team Gamma','Integration',6,10,'1.0-1.1','3,3,4,2,4,3,5,4','Team Alpha, Team Beta');
+
+function mtGetTeams() {
+  return [...$$('#mtTeamsBody tr')].map((tr, i) => {
+    const low = parseInt(tr.querySelector('.mt-low').value) || 1;
+    const high = parseInt(tr.querySelector('.mt-high').value) || low;
+    const split = parseSplitRate(tr.querySelector('.mt-split').value);
+    const throughput = tr.querySelector('.mt-tp').value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n)&&n>=0);
+    const depRefs = tr.querySelector('.mt-deps').value.split(',').map(s=>s.trim()).filter(Boolean);
+    return { index: i, name: tr.querySelector('.mt-name').value.trim()||('Team '+(i+1)),
+      epic: tr.querySelector('.mt-epic').value.trim()||('Epic '+(i+1)),
+      low: Math.min(low,high), high: Math.max(low,high), split, throughput, depRefs, dependsOn: [] };
+  });
+}
+
+function mtResolveDeps(teams) {
+  const map = {};
+  teams.forEach((t,i) => { map[t.name.toLowerCase()] = i; map[String(i+1)] = i; });
+  teams.forEach(t => {
+    t.dependsOn = [];
+    t.depRefs.forEach(ref => {
+      const idx = map[ref.toLowerCase().trim()];
+      if (idx !== undefined && idx !== t.index && !t.dependsOn.includes(idx)) t.dependsOn.push(idx);
+    });
+  });
+}
+
+function mtTopoSort(teams) {
+  const n = teams.length;
+  const inDeg = new Array(n).fill(0);
+  const adj = teams.map(() => []);
+  teams.forEach((t,i) => t.dependsOn.forEach(d => { adj[d].push(i); inDeg[i]++; }));
+  const q = [];
+  for (let i=0;i<n;i++) if (inDeg[i]===0) q.push(i);
+  const order = [];
+  while (q.length) { q.sort((a,b)=>a-b); const nd=q.shift(); order.push(nd); adj[nd].forEach(nx => { inDeg[nx]--; if(inDeg[nx]===0) q.push(nx); }); }
+  return order.length===n ? order : null;
+}
+
+function runMultiTeamSim(teams, numTrials) {
+  const order = mtTopoSort(teams);
+  if (!order) return null;
+  const teamComp = teams.map(() => []);
+  const prodComp = [];
+  for (let t=0; t<numTrials; t++) {
+    const fin = new Array(teams.length).fill(0);
+    for (const ti of order) {
+      const team = teams[ti];
+      let start = 0;
+      for (const d of team.dependsOn) if (fin[d]>start) start=fin[d];
+      let rem = randomizeScope(team);
+      let iter = start;
+      while (rem>0 && iter<500) { iter++; const tp=team.throughput[Math.floor(Math.random()*team.throughput.length)]; rem=Math.max(0,rem-tp); }
+      fin[ti] = iter;
+    }
+    for (let i=0;i<teams.length;i++) teamComp[i].push(fin[i]);
+    prodComp.push(Math.max(...fin));
+  }
+  teamComp.forEach(a=>a.sort((a,b)=>a-b));
+  prodComp.sort((a,b)=>a-b);
+  return { teamComp, prodComp };
+}
+
+function runMultiTeamSimNoDeps(teams, numTrials) {
+  const nd = teams.map(t=>({...t, dependsOn:[]}));
+  return runMultiTeamSim(nd, numTrials);
+}
+
+// ── Multi-Team: Rendering ──
+
+function mtPortfolioHtml(teams, tc, pc, targetIter, il, sd) {
+  const hasT = targetIter!==null && sd;
+  let h = `<table class="portfolio-table"><thead><tr><th>#</th><th>Team</th><th>Epic</th><th>Scope</th><th>Deps</th><th>50%</th><th>70%</th><th>85%</th><th>95%</th>${hasT?'<th>Status</th>':''}</tr></thead><tbody>`;
+  teams.forEach((t,i) => {
+    const c = MT_COLORS[i%MT_COLORS.length];
+    const p50=percentileInt(tc[i],50), p70=percentileInt(tc[i],70), p85=percentileInt(tc[i],85), p95=percentileInt(tc[i],95);
+    const sc = t.low===t.high ? t.low : `${t.low}&ndash;${t.high}`;
+    const db = t.dependsOn.length===0 ? '<span style="color:#ccc;font-size:0.72rem;">none</span>' : t.dependsOn.map(di=>`<span class="dep-badge has-dep">${teams[di].name}</span>`).join('');
+    let st = '';
+    if (hasT) {
+      if (p85<=targetIter) st='<td><span class="traffic-light tl-green"></span>On track</td>';
+      else if (p85<=targetIter+1) st='<td><span class="traffic-light tl-yellow"></span>At risk</td>';
+      else st='<td><span class="traffic-light tl-red"></span>Late</td>';
+    }
+    const df = (p,v) => `${iterLabel(il,v)}${sd?`<br><span style="color:#999;font-size:0.7rem">${addWeeksToDate(sd,v,il)}</span>`:''}`;
+    h += `<tr><td class="pf-order"><span class="team-color-dot" style="background:${c}"></span>${i+1}</td><td class="pf-name">${t.name}</td><td>${t.epic}</td><td class="pf-scope">${sc}</td><td>${db}</td><td>${df('',p50)}</td><td>${df('',p70)}</td><td class="pf-date">${df('',p85)}</td><td>${df('',p95)}</td>${st}</tr>`;
+  });
+  // Summary row
+  const pp50=percentileInt(pc,50),pp70=percentileInt(pc,70),pp85=percentileInt(pc,85),pp95=percentileInt(pc,95);
+  let pst='';
+  if(hasT){if(pp85<=targetIter)pst='<td><span class="traffic-light tl-green"></span>On track</td>';else if(pp85<=targetIter+1)pst='<td><span class="traffic-light tl-yellow"></span>At risk</td>';else pst='<td><span class="traffic-light tl-red"></span>Late</td>';}
+  const df2=v=>`${iterLabel(il,v)}${sd?`<br><span style="color:#999;font-size:0.7rem">${addWeeksToDate(sd,v,il)}</span>`:''}`;
+  h+=`<tr class="summary-row"><td colspan="5" style="text-align:right;padding-right:12px;">Overall Product (MAX)</td><td>${df2(pp50)}</td><td>${df2(pp70)}</td><td class="pf-date">${df2(pp85)}</td><td>${df2(pp95)}</td>${pst}</tr>`;
+  h+='</tbody></table>';
+  if(hasT) h+=`<div class="portfolio-legend"><span><span class="traffic-light tl-green"></span> On track</span><span><span class="traffic-light tl-yellow"></span> At risk</span><span><span class="traffic-light tl-red"></span> Late</span><span style="margin-left:auto;color:#666;">Target: <strong>${addWeeksToDate(sd,targetIter,il)}</strong> (${iterLabel(il,targetIter)})</span></div>`;
+  else h+='<div class="portfolio-legend"><span style="color:#999;">Set a target date to see traffic light status.</span></div>';
+  return h;
+}
+
+function mtDepImpactHtml(teams, tc, ndTc, targetIter, il, sd, numTrials) {
+  const deps = teams.filter(t=>t.dependsOn.length>0);
+  if (!deps.length) return '<p style="font-size:0.82rem;color:#999;">No dependencies defined &mdash; all teams run in parallel.</p>';
+  let h = '';
+  deps.forEach(t => {
+    const i = t.index;
+    const p85w = percentileInt(tc[i],85), p85n = percentileInt(ndTc[i],85);
+    const shift = p85w - p85n;
+    const dn = t.dependsOn.map(di=>teams[di].name).join(', ');
+    let cpHtml = '';
+    if (targetIter !== null) {
+      const dps = t.dependsOn.map(di => { const cnt=tc[di].filter(v=>v<=targetIter).length; return cnt/numTrials; });
+      const approx = dps.reduce((p,v)=>p*v, 1);
+      const exact = tc[i].filter(v=>v<=targetIter).length / numTrials;
+      cpHtml = `<br>Compound probability (all deps done by target): ${t.dependsOn.map((di,k)=>`P(${teams[di].name})=${(dps[k]*100).toFixed(1)}%`).join(' &times; ')} = <span class="dep-compound">${(approx*100).toFixed(1)}%</span> (approx)<br>Exact simulation P(${t.name} done by target): <span class="dep-compound">${(exact*100).toFixed(1)}%</span>`;
+    }
+    h += `<div class="dep-impact-card"><div class="dep-title">${t.name} depends on: ${dn}</div><div class="dep-detail">85th pctl with deps: <strong>${iterLabel(il,p85w)}${sd?' ('+addWeeksToDate(sd,p85w,il)+')':''}</strong><br>85th pctl if independent: <strong>${iterLabel(il,p85n)}${sd?' ('+addWeeksToDate(sd,p85n,il)+')':''}</strong><br>Dependency cost: <strong style="color:${shift>0?'var(--orange)':'var(--green)'}">${shift>0?'+':''}${iterLabel(il,Math.abs(shift))}${shift>0?' later':shift<0?' earlier':' (no change)'}</strong>${cpHtml}</div></div>`;
+  });
+  return h;
+}
+
+function mtScenarioHtml(wd, nd, il, sd, levels) {
+  function rows(comp) {
+    return levels.map(p => {
+      const v=percentileInt(comp,p);
+      return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.82rem;"><span style="color:#888;">${p}%</span><span><strong>${iterLabel(il,v)}</strong>${sd?` <span style="color:#999;font-size:0.7rem">(${addWeeksToDate(sd,v,il)})</span>`:''}</span></div>`;
+    }).join('');
+  }
+  function deltas(wComp, nComp) {
+    return levels.map(p => {
+      const w=percentileInt(wComp,p), n=percentileInt(nComp,p), d=w-n;
+      return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.82rem;"><span style="color:#888;">${p}%</span><span class="scenario-delta ${d>0?'positive':'neutral'}">${d>0?'+':''}${iterLabel(il,Math.abs(d))}${d>0?' later':d<0?' earlier':''}</span></div>`;
+    }).join('');
+  }
+  return `<div class="scenario-col"><h4>All Parallel (no deps)</h4>${rows(nd.prodComp)}</div><div class="scenario-col"><h4>With Dependencies (actual)</h4>${rows(wd.prodComp)}</div><div class="scenario-col" style="grid-column:1/-1;background:#fffef7;border-color:#f1c40f;"><h4 style="color:#8a6000;">Time Cost of Dependencies</h4>${deltas(wd.prodComp,nd.prodComp)}</div>`;
+}
+
+// ── Multi-Team: Tooltip + Run Handler ──
+const mtHistBarRef = { current: null };
+attachTooltip($('#mtHistogram'), $('#mtHistTooltip'), mtHistBarRef);
+
+$('#mtRunBtn').onclick = () => {
+  const teams = mtGetTeams();
+  if (!teams.length) { alert('Add at least one team.'); return; }
+  for (const t of teams) { if (t.throughput.length<2) { alert(`"${t.name}" needs at least 2 throughput data points.`); return; } }
+
+  mtResolveDeps(teams);
+  const order = mtTopoSort(teams);
+  if (!order) { alert('Dependency cycle detected! Check the "Depends on" fields.'); return; }
+
+  const numTrials = parseInt(document.querySelector('input[name="mtTrials"]:checked').value)||10000;
+  const il = getIterLen('mtIterLenSel');
+  const sd = $('#mtStartDate').value;
+  const td = $('#mtTargetDate').value;
+  let targetIter = null;
+  if (td && sd) { const s=new Date(sd), t=new Date(td); targetIter=Math.floor((t-s)/(1000*60*60*24*7)/il); }
+
+  const btn = $('#mtRunBtn');
+  btn.textContent = 'Running...'; btn.disabled = true;
+
+  setTimeout(() => {
+    const wd = runMultiTeamSim(teams, numTrials);
+    const nd = runMultiTeamSimNoDeps(teams, numTrials);
+    const { teamComp, prodComp } = wd;
+    const levels = [50,70,85,95];
+    const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
+
+    $('#mtResults').classList.add('visible');
+
+    // Confidence grid
+    $('#mtConfGrid').innerHTML = levels.map((p,i) => {
+      const v = percentileInt(prodComp,p);
+      const d = addWeeksToDate(sd,v,il);
+      return `<div class="mt-conf-card" style="border-left:3px solid ${colors[i]}"><div class="pct">${p}% likely</div><div class="val">${iterLabel(il,v)}</div>${d?`<div class="date">${d}</div>`:''}</div>`;
+    }).join('');
+
+    // Histogram
+    const xLbl = il===1?'Weeks to product completion':'Iterations to product completion';
+    const layout = drawHistogram($('#mtHistogram'), prodComp, levels, xLbl, 'duration');
+    mtHistBarRef.current = layout.barLayout;
+    showStats($('#mtStatsRow'), prodComp, null);
+
+    // Portfolio table
+    $('#mtPortfolioResults').innerHTML = mtPortfolioHtml(teams, teamComp, prodComp, targetIter, il, sd);
+
+    // Dependency impact
+    $('#mtDepImpact').innerHTML = mtDepImpactHtml(teams, teamComp, nd.teamComp, targetIter, il, sd, numTrials);
+
+    // Scenario comparison (only if deps exist)
+    const hasDeps = teams.some(t=>t.dependsOn.length>0);
+    $('#mtScenarioCompCard').style.display = hasDeps ? '' : 'none';
+    if (hasDeps) $('#mtScenarioCompare').innerHTML = mtScenarioHtml(wd, nd, il, sd, levels);
+
+    btn.textContent = 'Run Product Forecast'; btn.disabled = false;
+    setTimeout(() => $('#mtResults').scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  }, 30);
+};
+</script>
+</body>
+</html>
