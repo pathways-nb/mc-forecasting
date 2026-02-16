@@ -1325,7 +1325,7 @@ function runFeatureSimulationShared(throughputData, features, numTrials, wipLimi
         for (let i = 0; i < remaining.length; i++) sum += remaining[i];
         path.push(sum);
       }
-      if (iter > 200) break;
+      if (iter > 500) break;
     }
 
     for (let i = 0; i < done.length; i++) {
@@ -1375,7 +1375,7 @@ function runFeatureSimulationPerFeature(features, numTrials) {
         for (let i = 0; i < remaining.length; i++) sum += remaining[i];
         path.push(sum);
       }
-      if (iter > 200) break;
+      if (iter > 500) break;
     }
 
     for (let i = 0; i < done.length; i++) {
