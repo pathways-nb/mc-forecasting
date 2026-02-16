@@ -6,15 +6,16 @@ A single-page web app for probabilistic delivery forecasting using Monte Carlo s
 
 ## Tools
 
-### Single Feature
-Forecast a single feature or epic. Toggle between:
-- **When will it ship?** — Given scope and throughput, when will it be done?
-- **How many can I finish?** — Given a time horizon, how many items can you complete?
+### Backlog Forecast
+Forecast a single backlog or epic. Given scope and throughput, when will it be done?
 
-### Multi-Feature
+### Portfolio Forecast
 Forecast multiple features with shared or per-feature throughput. Supports WIP limits, weighted allocation, and portfolio-level confidence reporting.
 
-### Multi-Team
+### Capacity Forecast
+How much can your team deliver in a given time window? Given throughput history and a planning horizon, get probabilistic item and feature counts.
+
+### Product Forecast
 Forecast a product delivered by multiple teams with inter-team dependencies. Uses topological sorting to simulate dependency chains and compares with/without dependency scenarios.
 
 ## Methodology

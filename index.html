@@ -255,7 +255,7 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
 .cutline-row { background: #f5f5f5 !important; }
 .cutline-row td { border-top: 2px dashed #999; font-weight: 600; color: #666; }
 
-/* ── Multi-Team Forecast ── */
+/* ── Product Forecast ── */
 .teams-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.82rem; }
 .teams-table th { text-align: left; font-size: 0.7rem; text-transform: uppercase; color: #888; padding: 6px 8px; border-bottom: 2px solid #ddd; white-space: nowrap; }
 .teams-table td { padding: 4px 6px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
@@ -306,9 +306,10 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
   </div>
   <div class="sidebar-nav">
     <div class="nav-section">Tools</div>
-    <a data-page="single" class="active"><span class="nav-icon">&#9670;</span><span class="nav-label">Single Feature</span></a>
-    <a data-page="forecast"><span class="nav-icon">&#9881;</span><span class="nav-label">Multi-Feature</span></a>
-    <a data-page="multi-team"><span class="nav-icon">&#9782;</span><span class="nav-label">Multi-Team</span></a>
+    <a data-page="single" class="active"><span class="nav-icon">&#9670;</span><span class="nav-label">Backlog Forecast</span></a>
+    <a data-page="forecast"><span class="nav-icon">&#9881;</span><span class="nav-label">Portfolio Forecast</span></a>
+    <a data-page="capacity"><span class="nav-icon">&#9636;</span><span class="nav-label">Capacity Forecast</span></a>
+    <a data-page="multi-team"><span class="nav-icon">&#9782;</span><span class="nav-label">Product Forecast</span></a>
     <div class="nav-section" style="margin-top:12px;">Help</div>
     <a data-page="guide"><span class="nav-icon">&#128214;</span><span class="nav-label">Quick Guide</span></a>
   </div>
@@ -322,17 +323,10 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
 
 <div class="main">
 
-  <!-- ════════ Single Feature Forecast ════════ -->
+  <!-- ════════ Backlog Forecast ════════ -->
   <div class="page active" id="page-single">
-    <h2 class="page-title">Single Feature Forecast</h2>
-    <p class="page-subtitle">Forecast one feature for a single team</p>
-
-    <div class="mode-toggle" style="margin-bottom:20px;">
-      <input type="radio" name="singleMode" id="singleModeWhen" value="when" checked>
-      <label for="singleModeWhen">When will it ship?</label>
-      <input type="radio" name="singleMode" id="singleModeHow" value="how">
-      <label for="singleModeHow">How many can I finish?</label>
-    </div>
+    <h2 class="page-title">Backlog Forecast</h2>
+    <p class="page-subtitle">Forecast a single backlog or epic for one team</p>
 
     <div class="input-grid">
     <div class="card">
@@ -396,32 +390,21 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
           </div>
           <input type="text" id="sSplit" placeholder="1.0" value="">
         </div>
+        <div style="flex:1; min-width:120px;">
+          <div class="label-row">
+            <label>Scope model</label>
+            <span class="info-tip">?<span class="tip-text"><strong>Uniform:</strong> Every value between Low and High is equally likely. Conservative &mdash; makes no assumptions. (Magennis SGP default)<br><br><strong>PERT:</strong> Values near the midpoint are more likely than the extremes. Produces bell-shaped distributions. Uses Beta distribution with formula: mean = (Low + 4&times;Mid + High) / 6. Better when you believe the middle is most realistic.</span></span>
+          </div>
+          <select id="sScopeModel" style="width:100%;">
+            <option value="uniform">Uniform</option>
+            <option value="pert">PERT (Beta)</option>
+          </select>
+        </div>
       </div>
       <div style="display:flex; gap:16px; margin-top:10px; flex-wrap:wrap;">
         <div style="flex:1; min-width:140px;">
           <div class="label-row"><label for="sStartDate">Forecast start date</label></div>
           <input type="date" id="sStartDate">
-        </div>
-      </div>
-    </div>
-
-    <!-- How many mode: horizon + right-size -->
-    <div class="card" id="sHowCard" style="display:none;">
-      <h3>Planning Window</h3>
-      <div style="display:flex; gap:16px; flex-wrap:wrap;">
-        <div style="flex:1; min-width:140px;">
-          <div class="label-row">
-            <label for="sHorizon">Planning horizon (weeks)</label>
-            <span class="info-tip">?<span class="tip-text">How far ahead you're planning. E.g. 12 weeks for a quarter. Converted to iterations automatically.</span></span>
-          </div>
-          <input type="number" id="sHorizon" value="12" min="1" max="104">
-        </div>
-        <div style="flex:1; min-width:140px;">
-          <div class="label-row">
-            <label for="sRightSize">Right-size value (items per feature)</label>
-            <span class="info-tip">?<span class="tip-text">85th percentile of historical feature sizes. Used to convert total items into feature count. Start with 5-8 if unknown.</span></span>
-          </div>
-          <input type="number" id="sRightSize" value="8" min="1" max="50">
         </div>
       </div>
     </div>
@@ -436,11 +419,6 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
         <div class="card full-width" id="sConfCard">
           <h3>Confidence Levels</h3>
           <div class="confidence-grid" id="sConfGrid"></div>
-        </div>
-        <div class="card full-width" id="sCapCard" style="display:none;">
-          <h3>Feature Capacity</h3>
-          <p style="font-size:0.82rem; color:#666; margin-bottom:8px;">How many right-sized features can your team deliver?</p>
-          <div class="capacity-grid" id="sCapGrid"></div>
         </div>
         <div class="card full-width">
           <h3 id="sHistTitle">Completion Distribution</h3>
@@ -457,28 +435,14 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
             <canvas id="sBurndownChart" width="700" height="280"></canvas>
           </div>
         </div>
-        <div class="card full-width" id="sCapPathsCard" style="display:none;">
-          <h3>Monte Carlo Simulation Paths</h3>
-          <p style="font-size:0.78rem; color:#888; margin-bottom:8px;">Each line is one trial &mdash; showing cumulative items completed over iterations. The spread shows uncertainty in total output.</p>
-          <div class="chart-container">
-            <canvas id="sCapPathsChart" width="700" height="280"></canvas>
-          </div>
-        </div>
       </div>
     </div>
   </div>
 
-  <!-- ════════ Multi-Feature Forecast ════════ -->
+  <!-- ════════ Portfolio Forecast ════════ -->
   <div class="page" id="page-forecast">
-    <h2 class="page-title">Multi-Feature Forecast</h2>
-    <p class="page-subtitle">Forecast multiple features for a single team</p>
-
-    <div class="mode-toggle" style="margin-bottom:20px;">
-      <input type="radio" name="mfMode" id="mfModeWhen" value="when" checked>
-      <label for="mfModeWhen">When will it ship?</label>
-      <input type="radio" name="mfMode" id="mfModeHow" value="how">
-      <label for="mfModeHow">How many can I finish?</label>
-    </div>
+    <h2 class="page-title">Portfolio Forecast</h2>
+    <p class="page-subtitle">Forecast multiple features with WIP limits and allocation</p>
 
     <div class="input-grid">
     <div class="card">
@@ -532,6 +496,16 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
             <input type="radio" name="trials" id="t100k" value="100000">
             <label class="trial-opt" for="t100k">100,000</label>
           </div>
+        </div>
+        <div style="flex:0 0 auto; min-width:130px;">
+          <div class="label-row">
+            <label>Scope model</label>
+            <span class="info-tip">?<span class="tip-text"><strong>Uniform:</strong> Every value between Low and High is equally likely. Conservative. (Magennis SGP default)<br><br><strong>PERT:</strong> Values near the midpoint are more likely. Produces bell-shaped distributions. Better when you believe the middle is most realistic.</span></span>
+          </div>
+          <select id="mfScopeModel">
+            <option value="uniform">Uniform</option>
+            <option value="pert">PERT (Beta)</option>
+          </select>
         </div>
       </div>
     </div>
@@ -599,26 +573,6 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
       <div class="outcome-note" id="outcomeNote"></div>
     </div>
 
-    <!-- How many mode: capacity inputs -->
-    <div class="card" id="mfCapCard" style="display:none;">
-      <h3>Planning Window</h3>
-      <div style="display:flex; gap:16px; flex-wrap:wrap;">
-        <div style="flex:1; min-width:140px;">
-          <div class="label-row">
-            <label for="mfHorizon">Planning horizon (weeks)</label>
-            <span class="info-tip">?<span class="tip-text">How far ahead you're planning. E.g. 12 weeks for a quarter.</span></span>
-          </div>
-          <input type="number" id="mfHorizon" value="12" min="1" max="104">
-        </div>
-        <div style="flex:1; min-width:140px;">
-          <div class="label-row">
-            <label for="mfRightSize">Right-size value (items per feature)</label>
-            <span class="info-tip">?<span class="tip-text">85th percentile of historical feature sizes. Used to convert total items into feature count.</span></span>
-          </div>
-          <input type="number" id="mfRightSize" value="8" min="1" max="50">
-        </div>
-      </div>
-    </div>
     </div><!-- /input-grid -->
 
     <div style="text-align:center; margin: 20px 0;">
@@ -627,22 +581,6 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
 
     <div class="results" id="results">
       <div class="results-grid">
-        <!-- Capacity results (how many mode) -->
-        <div class="card" id="mfCapResultCard" style="display:none;">
-          <h3>Items Forecast Distribution</h3>
-          <p style="font-size:0.78rem; color:#888; margin-bottom:8px;">Total items your team could complete. Confidence lines show: with X% certainty you'll complete <em>at least</em> this many.</p>
-          <div class="chart-container">
-            <canvas id="mfCapHistogram" width="700" height="300"></canvas>
-            <div class="chart-tooltip" id="mfCapHistTooltip"></div>
-          </div>
-          <div class="stats-row" id="mfCapStatsRow"></div>
-        </div>
-        <div class="card" id="mfCapGridCard" style="display:none;">
-          <h3>Feature Capacity</h3>
-          <p style="font-size:0.82rem; color: #666; margin-bottom: 8px;">How many right-sized features can your team deliver?</p>
-          <div class="capacity-grid" id="mfCapGrid"></div>
-        </div>
-        <!-- When mode results -->
         <div class="card" id="mfBurndownCard">
           <h3>Monte Carlo Simulation Paths</h3>
           <p style="font-size:0.78rem; color:#888; margin-bottom:8px;">Each line is one trial &mdash; showing total remaining items burned down over iterations. The spread shows uncertainty.</p>
@@ -676,9 +614,101 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
     </div>
   </div>
 
-  <!-- ════════ Multi-Team Product Forecast ════════ -->
+  <!-- ════════ Capacity Forecast ════════ -->
+  <div class="page" id="page-capacity">
+    <h2 class="page-title">Capacity Forecast</h2>
+    <p class="page-subtitle">How much can your team deliver in a given time window?</p>
+
+    <div class="input-grid">
+    <div class="card">
+      <h3>Team Throughput</h3>
+      <div class="label-row">
+        <label for="capThroughput">Throughput per iteration (comma-separated)</label>
+        <span class="info-tip">?<span class="tip-text">Enter your team's actual throughput per iteration. Each number = items completed in that iteration. More data points = more representative forecast. Include good and bad iterations.</span></span>
+      </div>
+      <input type="text" id="capThroughput" placeholder="e.g. 3, 5, 4, 2, 6, 3, 4, 5" value="3, 5, 4, 2, 6, 3, 4, 5">
+      <div style="height:8px"></div>
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:140px;">
+          <div class="label-row">
+            <label>Iteration length</label>
+            <span class="info-tip">?<span class="tip-text">How long is each iteration/sprint? Your throughput data should match this cadence.</span></span>
+          </div>
+          <select id="capIterLenSel">
+            <option value="1" selected>1 week</option>
+            <option value="2">2 weeks</option>
+            <option value="3">3 weeks</option>
+          </select>
+        </div>
+        <div style="flex:1; min-width:120px;">
+          <div class="label-row">
+            <label>Trials</label>
+            <span class="info-tip">?<span class="tip-text">Number of Monte Carlo simulation trials. More trials = more stable results.</span></span>
+          </div>
+          <select id="capTrials">
+            <option value="500" selected>500</option>
+            <option value="1000">1 000</option>
+            <option value="5000">5 000</option>
+            <option value="10000">10 000</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Planning Window</h3>
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:140px;">
+          <div class="label-row">
+            <label for="capHorizon">Planning horizon (weeks)</label>
+            <span class="info-tip">?<span class="tip-text">How far ahead you're planning. E.g. 12 weeks for a quarter. Converted to iterations automatically.</span></span>
+          </div>
+          <input type="number" id="capHorizon" value="12" min="1" max="104">
+        </div>
+        <div style="flex:1; min-width:140px;">
+          <div class="label-row">
+            <label for="capRightSize">Right-size value (items per feature)</label>
+            <span class="info-tip">?<span class="tip-text">85th percentile of historical feature sizes. Used to convert total items into feature count. Start with 5-8 if unknown.</span></span>
+          </div>
+          <input type="number" id="capRightSize" value="8" min="1" max="50">
+        </div>
+      </div>
+    </div>
+    </div><!-- /input-grid -->
+
+    <div style="text-align:center; margin: 20px 0;">
+      <button class="btn btn-primary btn-run" id="capRunBtn">Calculate Capacity</button>
+    </div>
+
+    <div class="results" id="capResults">
+      <div class="results-grid">
+        <div class="card full-width">
+          <h3>Feature Capacity</h3>
+          <p style="font-size:0.82rem; color:#666; margin-bottom:8px;">How many right-sized features can your team deliver?</p>
+          <div class="capacity-grid" id="capGrid"></div>
+        </div>
+        <div class="card full-width">
+          <h3>Items Forecast Distribution</h3>
+          <p style="font-size:0.78rem; color:#888; margin-bottom:8px;">Total items your team could complete. Confidence lines show: with X% certainty you'll complete <em>at least</em> this many.</p>
+          <div class="chart-container">
+            <canvas id="capHistogram" width="700" height="300"></canvas>
+            <div class="chart-tooltip" id="capHistTooltip"></div>
+          </div>
+          <div class="stats-row" id="capStatsRow"></div>
+        </div>
+        <div class="card full-width">
+          <h3>Monte Carlo Simulation Paths</h3>
+          <p style="font-size:0.78rem; color:#888; margin-bottom:8px;">Each line is one trial &mdash; showing cumulative items completed over iterations. The spread shows uncertainty in total output.</p>
+          <div class="chart-container">
+            <canvas id="capPathsChart" width="700" height="280"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ Product Forecast ════════ -->
   <div class="page" id="page-multi-team">
-    <h2 class="page-title">Multi-Team Product Forecast</h2>
+    <h2 class="page-title">Product Forecast</h2>
     <p class="page-subtitle">Model a product built by multiple teams &mdash; with or without dependencies &mdash; and get probability-weighted completion dates</p>
 
     <div class="input-grid">
@@ -730,15 +760,27 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
           <input type="date" id="mtTargetDate">
         </div>
       </div>
-      <div style="margin-top:10px;">
-        <div class="label-row"><label>Simulation trials</label></div>
-        <div class="trial-selector">
-          <input type="radio" name="mtTrials" id="mtt500" value="500">
-          <label class="trial-opt" for="mtt500">500</label>
-          <input type="radio" name="mtTrials" id="mtt10k" value="10000" checked>
-          <label class="trial-opt" for="mtt10k">10,000</label>
-          <input type="radio" name="mtTrials" id="mtt100k" value="100000">
-          <label class="trial-opt" for="mtt100k">100,000</label>
+      <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;align-items:end;">
+        <div style="flex:1;min-width:200px;">
+          <div class="label-row"><label>Simulation trials</label></div>
+          <div class="trial-selector">
+            <input type="radio" name="mtTrials" id="mtt500" value="500">
+            <label class="trial-opt" for="mtt500">500</label>
+            <input type="radio" name="mtTrials" id="mtt10k" value="10000" checked>
+            <label class="trial-opt" for="mtt10k">10,000</label>
+            <input type="radio" name="mtTrials" id="mtt100k" value="100000">
+            <label class="trial-opt" for="mtt100k">100,000</label>
+          </div>
+        </div>
+        <div style="flex:0 0 auto;min-width:130px;">
+          <div class="label-row">
+            <label>Scope model</label>
+            <span class="info-tip">?<span class="tip-text"><strong>Uniform:</strong> Every value between Low and High is equally likely. Conservative. (Magennis SGP default)<br><br><strong>PERT:</strong> Values near the midpoint are more likely. Produces bell-shaped distributions. Better when you believe the middle is most realistic.</span></span>
+          </div>
+          <select id="mtScopeModel">
+            <option value="uniform">Uniform</option>
+            <option value="pert">PERT (Beta)</option>
+          </select>
         </div>
       </div>
     </div>
@@ -853,6 +895,7 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
         </div>
       </div>
       <p style="font-size:0.85rem;color:#444;line-height:1.7;">Each trial randomly picks a scope within Low&ndash;High, multiplies by a random split rate, then simulates week-by-week throughput until done. This means every trial faces different scope <em>and</em> different throughput &mdash; capturing both sources of uncertainty.</p>
+      <p style="font-size:0.85rem;color:#444;line-height:1.7;margin-top:8px;"><strong>Scope model toggle:</strong> Choose between <strong>Uniform</strong> (every value between Low and High equally likely &mdash; Magennis default, conservative) and <strong>PERT</strong> (values near the midpoint are more likely, producing bell-shaped distributions using mean = (Low + 4&times;Mid + High) / 6). Use PERT when you believe the middle of your range is the most realistic estimate.</p>
     </div>
 
     <!-- Section 4: Tools -->
@@ -860,16 +903,15 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
       <h3 style="margin-top:0;font-size:1.1rem;">The tools</h3>
 
       <div style="border-left:3px solid #444;padding:12px 16px;margin:16px 0;background:#fafafa;border-radius:0 8px 8px 0;">
-        <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px;">Single Feature</div>
-        <p style="font-size:0.85rem;color:#555;margin:0 0 8px;line-height:1.6;">Forecast one feature or epic for a single team.</p>
+        <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px;">Backlog Forecast</div>
+        <p style="font-size:0.85rem;color:#555;margin:0 0 8px;line-height:1.6;">Forecast a single backlog or epic for one team.</p>
         <div style="font-size:0.82rem;color:#444;line-height:1.7;">
-          <strong>When will it ship?</strong> &mdash; Enter scope (Low/High), split rate, and throughput history. Get a probabilistic completion date with confidence levels and a burndown chart showing simulation paths.<br>
-          <strong>How many can I finish?</strong> &mdash; Enter a time horizon (e.g. 12 weeks). See how many items you can likely deliver, with a buildup chart.
+          Enter scope (Low/High), split rate, and throughput history. Get a probabilistic completion date with confidence levels and a burndown chart showing simulation paths.
         </div>
       </div>
 
-      <div style="border-left:3px solid #888;padding:12px 16px;margin:16px 0;background:#fafafa;border-radius:0 8px 8px 0;">
-        <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px;">Multi-Feature</div>
+      <div style="border-left:3px solid #666;padding:12px 16px;margin:16px 0;background:#fafafa;border-radius:0 8px 8px 0;">
+        <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px;">Portfolio Forecast</div>
         <p style="font-size:0.85rem;color:#555;margin:0 0 8px;line-height:1.6;">Forecast multiple features sharing one team's throughput.</p>
         <div style="font-size:0.82rem;color:#444;line-height:1.7;">
           <strong>Throughput modes:</strong> <em>Shared pool</em> splits one throughput stream proportionally across features. <em>Per-feature</em> gives each feature its own independent throughput data.<br>
@@ -878,8 +920,16 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
         </div>
       </div>
 
+      <div style="border-left:3px solid #999;padding:12px 16px;margin:16px 0;background:#fafafa;border-radius:0 8px 8px 0;">
+        <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px;">Capacity Forecast</div>
+        <p style="font-size:0.85rem;color:#555;margin:0 0 8px;line-height:1.6;">How much can your team deliver in a given time window?</p>
+        <div style="font-size:0.82rem;color:#444;line-height:1.7;">
+          Enter throughput history and a planning horizon (e.g. 12 weeks for a quarter). Get probabilistic item counts at each confidence level, converted to feature counts using a right-size value. Includes a buildup chart showing simulation paths.
+        </div>
+      </div>
+
       <div style="border-left:3px solid #bbb;padding:12px 16px;margin:16px 0;background:#fafafa;border-radius:0 8px 8px 0;">
-        <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px;">Multi-Team</div>
+        <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px;">Product Forecast</div>
         <p style="font-size:0.85rem;color:#555;margin:0 0 8px;line-height:1.6;">Forecast a product delivered by multiple teams with optional dependencies.</p>
         <div style="font-size:0.82rem;color:#444;line-height:1.7;">
           Each team has its own throughput, scope, and split rate. <strong>Dependencies</strong> mean a team cannot start until all its prerequisites finish &mdash; simulated per trial, so the delay compounds naturally.<br>
@@ -1095,23 +1145,12 @@ function mean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
 function stdev(arr) { const m = mean(arr); return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length); }
 
 // ══════════════════════════════════
-// ── Single Feature Forecast ──
+// ── Backlog Forecast ──
 // ══════════════════════════════════
 $('#sStartDate').valueAsDate = new Date();
 
-// Mode toggle
-function sUpdateMode() {
-  const mode = document.querySelector('input[name="singleMode"]:checked').value;
-  const isWhen = mode === 'when';
-  $('#sWhenCard').style.display = isWhen ? '' : 'none';
-  $('#sHowCard').style.display = isWhen ? 'none' : '';
-  $('#sRunBtn').textContent = isWhen ? 'Run Forecast' : 'Calculate Capacity';
-  $('#sResults').classList.remove('visible');
-}
-$$('input[name="singleMode"]').forEach(r => r.addEventListener('change', sUpdateMode));
-
 // ══════════════════════════════════
-// ── Multi-Feature Forecast ──
+// ── Portfolio Forecast ──
 // ══════════════════════════════════
 const wipSlider = $('#wipSlider');
 const wipVal = $('#wipVal');
@@ -1196,10 +1235,57 @@ function getFeatures() {
 }
 
 // Randomize scope for a feature using Size-Growth-Pace model (Magennis)
-function randomizeScope(feature) {
-  const base = feature.low + Math.floor(Math.random() * (feature.high - feature.low + 1));
+// scopeModel: 'uniform' (default) or 'pert' (Beta/PERT distribution)
+function randomizeScope(feature, scopeModel) {
+  let base;
+  if (scopeModel === 'pert' && feature.high > feature.low) {
+    // PERT Beta distribution using Jelen-transformed Beta(4,4) symmetric
+    // For Low/High with MostLikely = midpoint: alpha = beta = 4
+    base = pertSample(feature.low, feature.high);
+  } else {
+    // Uniform: every integer between low and high equally likely
+    base = feature.low + Math.floor(Math.random() * (feature.high - feature.low + 1));
+  }
   const splitMult = feature.split.lo + Math.random() * (feature.split.hi - feature.split.lo);
   return Math.ceil(base * splitMult);
+}
+
+// PERT/Beta sampling: concentrates around midpoint of [lo, hi]
+// Uses Beta(4, 4) which gives symmetric bell shape with ~95% within [lo, hi]
+function pertSample(lo, hi) {
+  // Generate Beta(4,4) using sum of uniforms approximation (Jelen method)
+  // Beta(a,b) can be generated via ratio of Gamma samples
+  const a = 4, b = 4;
+  const ga = gammaSample(a);
+  const gb = gammaSample(b);
+  const beta = ga / (ga + gb); // Beta(4,4) value in [0,1]
+  return Math.round(lo + beta * (hi - lo));
+}
+
+// Gamma(shape) sampling using Marsaglia-Tsang method
+function gammaSample(shape) {
+  if (shape < 1) {
+    return gammaSample(shape + 1) * Math.pow(Math.random(), 1 / shape);
+  }
+  const d = shape - 1/3;
+  const c = 1 / Math.sqrt(9 * d);
+  while (true) {
+    let x, v;
+    do {
+      x = randn();
+      v = 1 + c * x;
+    } while (v <= 0);
+    v = v * v * v;
+    const u = Math.random();
+    if (u < 1 - 0.0331 * (x*x) * (x*x)) return d * v;
+    if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+  }
+}
+
+// Standard normal via Box-Muller
+function randn() {
+  const u1 = Math.random(), u2 = Math.random();
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
 }
 
 function updateOutcome() {
@@ -1228,7 +1314,7 @@ addFeatureRow('Feature 3', 12, 18);
 // ── Simulation engine ──
 
 // Shared pool mode: throughput distributed across WIP-limited active features
-function runFeatureSimulationShared(throughputData, features, numTrials, wipLimit) {
+function runFeatureSimulationShared(throughputData, features, numTrials, wipLimit, scopeModel) {
   const results = [];
   const featureWeeks = features.map(() => []);
   const nominalTotal = features.reduce((s, f) => s + Math.round((f.low + f.high) / 2), 0);
@@ -1250,7 +1336,7 @@ function runFeatureSimulationShared(throughputData, features, numTrials, wipLimi
 
   for (let t = 0; t < numTrials; t++) {
     // Size-Growth-Pace: randomize scope per trial (Magennis)
-    const remaining = features.map(f => randomizeScope(f));
+    const remaining = features.map(f => randomizeScope(f, scopeModel));
     const done = features.map(() => 0);
     const trialTotal = remaining.reduce((s, r) => s + r, 0);
     let iter = 0;
@@ -1342,7 +1428,7 @@ function runFeatureSimulationShared(throughputData, features, numTrials, wipLimi
 }
 
 // Per-feature mode: each feature has its own throughput, simulated independently
-function runFeatureSimulationPerFeature(features, numTrials) {
+function runFeatureSimulationPerFeature(features, numTrials, scopeModel) {
   const featureWeeks = features.map(() => []);
   const results = [];
   const nominalTotal = features.reduce((s, f) => s + Math.round((f.low + f.high) / 2), 0);
@@ -1350,7 +1436,7 @@ function runFeatureSimulationPerFeature(features, numTrials) {
   const burndownPaths = [];
 
   for (let t = 0; t < numTrials; t++) {
-    const remaining = features.map(f => randomizeScope(f));
+    const remaining = features.map(f => randomizeScope(f, scopeModel));
     const trialTotal = remaining.reduce((s, r) => s + r, 0);
     const done = features.map(() => 0);
     let maxIter = 0;
@@ -1393,13 +1479,13 @@ function runFeatureSimulationPerFeature(features, numTrials) {
 
 // Portfolio/Cut-line simulation (Magennis): features processed SEQUENTIALLY
 // Throughput accumulates; each feature completes when cumulative throughput reaches its cumulative scope goal
-function runPortfolioSimulation(throughputData, features, numTrials) {
+function runPortfolioSimulation(throughputData, features, numTrials, scopeModel) {
   // featureIterations[i] = array of completion iterations across all trials
   const featureIterations = features.map(() => []);
 
   for (let t = 0; t < numTrials; t++) {
     // Randomize scope per feature, then build cumulative goals
-    const scopes = features.map(f => randomizeScope(f));
+    const scopes = features.map(f => randomizeScope(f, scopeModel));
     const cumulativeGoals = [];
     let cum = 0;
     for (let i = 0; i < scopes.length; i++) {
@@ -1761,8 +1847,6 @@ const sHistBarRef = { current: null };
 attachTooltip($('#sHistogram'), $('#sHistTooltip'), sHistBarRef);
 const histBarRef = { current: null };
 attachTooltip($('#histogram'), $('#histTooltip'), histBarRef);
-const mfCapHistBarRef = { current: null };
-attachTooltip($('#mfCapHistogram'), $('#mfCapHistTooltip'), mfCapHistBarRef);
 
 // ── Stats display ──
 function showStats(el, sortedData, sampleCount) {
@@ -1785,191 +1869,61 @@ function showStats(el, sortedData, sampleCount) {
 }
 
 // ══════════════════════════════════
-// ── Single Feature: Run ──
+// ── Backlog Forecast: Run ──
 // ══════════════════════════════════
 $('#sRunBtn').onclick = () => {
   const throughputData = parseThroughput('#sThroughput');
   if (throughputData.length < 2) { alert('Enter at least 2 throughput data points.'); return; }
   const il = getIterLen('sIterLenSel');
   const numTrials = getTrialCount('sTrials');
-  const mode = document.querySelector('input[name="singleMode"]:checked').value;
 
   const btn = $('#sRunBtn');
   btn.textContent = 'Running...'; btn.disabled = true;
 
   setTimeout(() => {
-    if (mode === 'when') {
-      const low = parseInt($('#sLow').value) || 1;
-      const high = parseInt($('#sHigh').value) || low;
-      const split = parseSplitRate($('#sSplit').value);
-      const feature = { low: Math.min(low,high), high: Math.max(low,high), split, name: 'Feature' };
-      const sim = runFeatureSimulationShared(throughputData, [feature], numTrials);
-      const { results, burndownPaths } = sim;
-      const startDate = $('#sStartDate').value;
-      const levels = [50, 70, 85, 95];
-      const confWeeks = {};
-      levels.forEach(p => confWeeks[p] = percentileInt(results, p));
+    const low = parseInt($('#sLow').value) || 1;
+    const high = parseInt($('#sHigh').value) || low;
+    const split = parseSplitRate($('#sSplit').value);
+    const feature = { low: Math.min(low,high), high: Math.max(low,high), split, name: 'Feature' };
+    const scopeModel = $('#sScopeModel').value;
+    const sim = runFeatureSimulationShared(throughputData, [feature], numTrials, undefined, scopeModel);
+    const { results, burndownPaths } = sim;
+    const startDate = $('#sStartDate').value;
+    const levels = [50, 70, 85, 95];
+    const confWeeks = {};
+    levels.forEach(p => confWeeks[p] = percentileInt(results, p));
 
-      $('#sResults').classList.add('visible');
-      $('#sBurndownCard').style.display = '';
-      $('#sConfCard').style.display = '';
-      $('#sCapCard').style.display = 'none';
-      $('#sCapPathsCard').style.display = 'none';
-      $('#sHistTitle').textContent = 'Completion Distribution';
+    $('#sResults').classList.add('visible');
 
-      // Burndown chart
-      const nominalTotal = Math.round((feature.low + feature.high) / 2);
-      drawBurndown($('#sBurndownChart'), burndownPaths, nominalTotal, confWeeks, il === 1 ? 'Week' : 'Iteration');
+    // Burndown chart
+    const nominalTotal = Math.round((feature.low + feature.high) / 2);
+    drawBurndown($('#sBurndownChart'), burndownPaths, nominalTotal, confWeeks, il === 1 ? 'Week' : 'Iteration');
 
-      const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
-      $('#sConfGrid').innerHTML = levels.map((p,i) => {
-        const iters = confWeeks[p];
-        const dateStr = addWeeksToDate(startDate, iters, il);
-        return `<div class="conf-card" style="border-left:3px solid ${colors[i]}">
-          <div class="pct">${p}% likely</div>
-          <div class="val">${iterLabel(il, iters)}</div>
-          ${dateStr ? `<div class="date">${dateStr}</div>` : ''}
-        </div>`;
-      }).join('');
+    const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
+    $('#sConfGrid').innerHTML = levels.map((p,i) => {
+      const iters = confWeeks[p];
+      const dateStr = addWeeksToDate(startDate, iters, il);
+      return `<div class="conf-card" style="border-left:3px solid ${colors[i]}">
+        <div class="pct">${p}% likely</div>
+        <div class="val">${iterLabel(il, iters)}</div>
+        ${dateStr ? `<div class="date">${dateStr}</div>` : ''}
+      </div>`;
+    }).join('');
 
-      const xLabel = il === 1 ? 'Weeks to complete' : 'Iterations to complete';
-      const layout = drawHistogram($('#sHistogram'), results, levels, xLabel, 'duration', '#888');
-      sHistBarRef.current = layout.barLayout;
-      showStats($('#sStatsRow'), results, throughputData.length);
+    const xLabel = il === 1 ? 'Weeks to complete' : 'Iterations to complete';
+    const layout = drawHistogram($('#sHistogram'), results, levels, xLabel, 'duration', '#888');
+    sHistBarRef.current = layout.barLayout;
+    showStats($('#sStatsRow'), results, throughputData.length);
 
-    } else {
-      const horizonWeeks = parseInt($('#sHorizon').value) || 12;
-      const rightSize = parseInt($('#sRightSize').value) || 8;
-      const iterations = Math.floor(horizonWeeks / il);
-      if (iterations < 1) { alert(`Horizon (${horizonWeeks} weeks) is shorter than one iteration (${il} weeks).`); btn.textContent='Calculate Capacity'; btn.disabled=false; return; }
-
-      const capSim = runCapacitySimulation(throughputData, iterations, numTrials);
-      const { results, paths: capPaths } = capSim;
-      const levels = [50, 70, 85, 95];
-
-      $('#sResults').classList.add('visible');
-      $('#sBurndownCard').style.display = 'none';
-      $('#sConfCard').style.display = 'none';
-      $('#sCapCard').style.display = '';
-      $('#sCapPathsCard').style.display = '';
-      $('#sHistTitle').textContent = 'Items Forecast Distribution';
-
-      const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
-      const labels = ['Aggressive','Moderate','Recommended','Conservative'];
-      $('#sCapGrid').innerHTML = levels.map((p,i) => {
-        const items = Math.floor(percentile(results, 100-p));
-        const feats = Math.floor(items / rightSize);
-        return `<div class="capacity-card" style="border-top:3px solid ${colors[i]}">
-          <div class="cap-label">${p}% confidence &middot; ${labels[i]}</div>
-          <div class="cap-val">${feats} features</div>
-          <div class="cap-sub">${items} items &divide; ${rightSize} right-size</div>
-        </div>`;
-      }).join('');
-
-      const layout = drawHistogram($('#sHistogram'), results, levels, `Total items in ${horizonWeeks} weeks (${iterations} iter${iterations!==1?'s':''})`, 'capacity', '#888');
-      sHistBarRef.current = layout.barLayout;
-      showStats($('#sStatsRow'), results, throughputData.length);
-
-      // Buildup paths chart
-      const confItems = {};
-      levels.forEach(p => confItems[p] = Math.floor(percentile(results, 100-p)));
-      const maxItems = results[results.length - 1];
-      drawBuildup($('#sCapPathsChart'), capPaths, maxItems, confItems, il === 1 ? 'Week' : 'Iteration');
-    }
-
-    btn.textContent = mode === 'when' ? 'Run Forecast' : 'Calculate Capacity';
+    btn.textContent = 'Run Forecast';
     btn.disabled = false;
     setTimeout(() => $('#sResults').scrollIntoView({ behavior:'smooth', block:'start' }), 50);
   }, 30);
 };
-
 // ══════════════════════════════════
-// ── Multi-Feature: Mode Toggle ──
-// ══════════════════════════════════
-function mfUpdateMode() {
-  const mode = document.querySelector('input[name="mfMode"]:checked').value;
-  const isWhen = mode === 'when';
-  // Toggle input visibility
-  $('#mfFeaturesCard').style.display = isWhen ? '' : 'none';
-  $('#mfCapCard').style.display = isWhen ? 'none' : '';
-  // Toggle shared throughput visibility (always show in "how many" mode)
-  if (!isWhen) {
-    $('#sharedTpCard').style.display = '';
-    if ($('#wipRow')) $('#wipRow').style.display = 'none';
-  } else {
-    updateModeUI();
-  }
-  $('#runBtn').textContent = isWhen ? 'Run Simulation' : 'Calculate Capacity';
-  $('#results').classList.remove('visible');
-}
-$$('input[name="mfMode"]').forEach(r => r.addEventListener('change', mfUpdateMode));
-
-// ══════════════════════════════════
-// ── Multi-Feature Forecast: Run ──
+// ── Portfolio Forecast: Run ──
 // ══════════════════════════════════
 $('#runBtn').onclick = () => {
-  const mfMode = document.querySelector('input[name="mfMode"]:checked').value;
-
-  // ── "How many can I finish?" mode ──
-  if (mfMode === 'how') {
-    const throughputData = parseThroughput('#throughput');
-    if (throughputData.length < 2) { alert('Enter at least 2 throughput data points.'); return; }
-    const il = getIterLen('iterLenSel');
-    const horizonWeeks = parseInt($('#mfHorizon').value) || 12;
-    const rightSize = parseInt($('#mfRightSize').value) || 8;
-    const iterations = Math.floor(horizonWeeks / il);
-    if (iterations < 1) { alert(`Horizon (${horizonWeeks} weeks) is shorter than one iteration (${il} weeks).`); return; }
-    const numTrials = getTrialCount('trials');
-    const btn = $('#runBtn');
-    btn.textContent = 'Calculating...'; btn.disabled = true;
-
-    setTimeout(() => {
-      const capSim = runCapacitySimulation(throughputData, iterations, numTrials);
-      const { results, paths: capPaths } = capSim;
-      const levels = [50, 70, 85, 95];
-
-      $('#results').classList.add('visible');
-      // Hide "when" result cards, show capacity cards
-      $('#mfBurndownCard').style.display = 'none';
-      $('#mfHistCard').style.display = 'none';
-      $('#mfConfCard').style.display = 'none';
-      $('#mfFeatCard').style.display = 'none';
-      $('#mfPortfolioCard').style.display = 'none';
-      $('#mfCapResultCard').style.display = '';
-      $('#mfCapGridCard').style.display = '';
-
-      const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
-      const labels = ['Aggressive','Moderate','Recommended','Conservative'];
-      $('#mfCapGrid').innerHTML = levels.map((p,i) => {
-        const items = Math.floor(percentile(results, 100-p));
-        const feats = Math.floor(items / rightSize);
-        return `<div class="capacity-card" style="border-top:3px solid ${colors[i]}">
-          <div class="cap-label">${p}% confidence &middot; ${labels[i]}</div>
-          <div class="cap-val">${feats} features</div>
-          <div class="cap-sub">${items} items &divide; ${rightSize} right-size</div>
-        </div>`;
-      }).join('');
-
-      const layout = drawHistogram($('#mfCapHistogram'), results, levels, `Total items in ${horizonWeeks} weeks (${iterations} iter${iterations!==1?'s':''})`, 'capacity', '#888');
-      mfCapHistBarRef.current = layout.barLayout;
-      showStats($('#mfCapStatsRow'), results, throughputData.length);
-
-      btn.textContent = 'Calculate Capacity'; btn.disabled = false;
-      setTimeout(() => $('#results').scrollIntoView({ behavior:'smooth', block:'start' }), 50);
-    }, 30);
-    return;
-  }
-
-  // ── "When will it ship?" mode ──
-  // Show "when" result cards, hide capacity cards
-  $('#mfCapResultCard').style.display = 'none';
-  $('#mfCapGridCard').style.display = 'none';
-  $('#mfBurndownCard').style.display = '';
-  $('#mfHistCard').style.display = '';
-  $('#mfConfCard').style.display = '';
-  $('#mfFeatCard').style.display = '';
-  $('#mfPortfolioCard').style.display = '';
-
   const mode = getTpMode();
   const features = getFeatures();
   if (features.length === 0) { alert('Add at least one feature.'); return; }
@@ -1996,9 +1950,11 @@ $('#runBtn').onclick = () => {
     let simResult;
     if (mode === 'shared') {
       const throughputData = parseThroughput('#throughput');
-      simResult = runFeatureSimulationShared(throughputData, features, numTrials, parseInt(wipSlider.value));
+      const scopeModel = $('#mfScopeModel').value;
+      simResult = runFeatureSimulationShared(throughputData, features, numTrials, parseInt(wipSlider.value), scopeModel);
     } else {
-      simResult = runFeatureSimulationPerFeature(features, numTrials);
+      const scopeModel = $('#mfScopeModel').value;
+      simResult = runFeatureSimulationPerFeature(features, numTrials, scopeModel);
     }
     const { results, featureWeeks, burndownPaths } = simResult;
     const startDate = $('#startDate').value;
@@ -2060,7 +2016,7 @@ $('#runBtn').onclick = () => {
     // Only run for shared mode (sequential model needs shared throughput)
     if (mode === 'shared') {
       const throughputData = parseThroughput('#throughput');
-      const portfolio = runPortfolioSimulation(throughputData, features, numTrials);
+      const portfolio = runPortfolioSimulation(throughputData, features, numTrials, $('#mfScopeModel').value);
       const targetDate = $('#targetDate').value;
       const confLevel = 85; // primary confidence for traffic light
 
@@ -2154,7 +2110,7 @@ $('#runBtn').onclick = () => {
 };
 
 // ══════════════════════════════════════════════════════
-// ── Multi-Team Product Forecast ──
+// ── Product Forecast ──
 // ══════════════════════════════════════════════════════
 
 const MT_COLORS = ['#333','#666','#999','#bbb','#444','#777','#aaa','#555','#888','#ccc'];
@@ -2232,7 +2188,7 @@ function mtTopoSort(teams) {
   return order.length===n ? order : null;
 }
 
-function runMultiTeamSim(teams, numTrials) {
+function runMultiTeamSim(teams, numTrials, scopeModel) {
   const order = mtTopoSort(teams);
   if (!order) return null;
   const teamComp = teams.map(() => []);
@@ -2243,7 +2199,7 @@ function runMultiTeamSim(teams, numTrials) {
       const team = teams[ti];
       let start = 0;
       for (const d of team.dependsOn) if (fin[d]>start) start=fin[d];
-      let rem = randomizeScope(team);
+      let rem = randomizeScope(team, scopeModel);
       let iter = start;
       while (rem>0 && iter<500) { iter++; const tp=team.throughput[Math.floor(Math.random()*team.throughput.length)]; rem=Math.max(0,rem-tp); }
       fin[ti] = iter;
@@ -2256,12 +2212,12 @@ function runMultiTeamSim(teams, numTrials) {
   return { teamComp, prodComp };
 }
 
-function runMultiTeamSimNoDeps(teams, numTrials) {
+function runMultiTeamSimNoDeps(teams, numTrials, scopeModel) {
   const nd = teams.map(t=>({...t, dependsOn:[]}));
-  return runMultiTeamSim(nd, numTrials);
+  return runMultiTeamSim(nd, numTrials, scopeModel);
 }
 
-// ── Multi-Team: Rendering ──
+// ── Product Forecast: Rendering ──
 
 function mtPortfolioHtml(teams, tc, pc, targetIter, il, sd) {
   const hasT = targetIter!==null && sd;
@@ -2330,7 +2286,60 @@ function mtScenarioHtml(wd, nd, il, sd, levels) {
   return `<div class="scenario-col"><h4>All Parallel (no deps)</h4>${rows(nd.prodComp)}</div><div class="scenario-col"><h4>With Dependencies (actual)</h4>${rows(wd.prodComp)}</div><div class="scenario-col" style="grid-column:1/-1;background:#f5f5f5;border-color:#ccc;"><h4 style="color:#333;">Time Cost of Dependencies</h4>${deltas(wd.prodComp,nd.prodComp)}</div>`;
 }
 
-// ── Multi-Team: Tooltip + Run Handler ──
+// ══════════════════════════════════
+// ── Capacity Forecast: Run ──
+// ══════════════════════════════════
+const capHistBarRef = { current: null };
+attachTooltip($('#capHistogram'), $('#capHistTooltip'), capHistBarRef);
+
+$('#capRunBtn').onclick = () => {
+  const throughputData = parseThroughput('#capThroughput');
+  if (throughputData.length < 2) { alert('Enter at least 2 throughput data points.'); return; }
+  const il = getIterLen('capIterLenSel');
+  const horizonWeeks = parseInt($('#capHorizon').value) || 12;
+  const rightSize = parseInt($('#capRightSize').value) || 8;
+  const iterations = Math.floor(horizonWeeks / il);
+  if (iterations < 1) { alert(`Horizon (${horizonWeeks} weeks) is shorter than one iteration (${il} weeks).`); return; }
+  const numTrials = getTrialCount('capTrials');
+
+  const btn = $('#capRunBtn');
+  btn.textContent = 'Calculating...'; btn.disabled = true;
+
+  setTimeout(() => {
+    const capSim = runCapacitySimulation(throughputData, iterations, numTrials);
+    const { results, paths: capPaths } = capSim;
+    const levels = [50, 70, 85, 95];
+
+    $('#capResults').classList.add('visible');
+
+    const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
+    const labels = ['Aggressive','Moderate','Recommended','Conservative'];
+    $('#capGrid').innerHTML = levels.map((p,i) => {
+      const items = Math.floor(percentile(results, 100-p));
+      const feats = Math.floor(items / rightSize);
+      return `<div class="capacity-card" style="border-top:3px solid ${colors[i]}">
+        <div class="cap-label">${p}% confidence &middot; ${labels[i]}</div>
+        <div class="cap-val">${feats} features</div>
+        <div class="cap-sub">${items} items &divide; ${rightSize} right-size</div>
+      </div>`;
+    }).join('');
+
+    const layout = drawHistogram($('#capHistogram'), results, levels, `Total items in ${horizonWeeks} weeks (${iterations} iter${iterations!==1?'s':''})`, 'capacity', '#888');
+    capHistBarRef.current = layout.barLayout;
+    showStats($('#capStatsRow'), results, throughputData.length);
+
+    // Buildup paths chart
+    const confItems = {};
+    levels.forEach(p => confItems[p] = Math.floor(percentile(results, 100-p)));
+    const maxItems = results[results.length - 1];
+    drawBuildup($('#capPathsChart'), capPaths, maxItems, confItems, il === 1 ? 'Week' : 'Iteration');
+
+    btn.textContent = 'Calculate Capacity'; btn.disabled = false;
+    setTimeout(() => $('#capResults').scrollIntoView({ behavior:'smooth', block:'start' }), 50);
+  }, 30);
+};
+
+// ── Product Forecast: Tooltip + Run Handler ──
 const mtHistBarRef = { current: null };
 attachTooltip($('#mtHistogram'), $('#mtHistTooltip'), mtHistBarRef);
 
@@ -2354,8 +2363,9 @@ $('#mtRunBtn').onclick = () => {
   btn.textContent = 'Running...'; btn.disabled = true;
 
   setTimeout(() => {
-    const wd = runMultiTeamSim(teams, numTrials);
-    const nd = runMultiTeamSimNoDeps(teams, numTrials);
+    const scopeModel = $('#mtScopeModel').value;
+    const wd = runMultiTeamSim(teams, numTrials, scopeModel);
+    const nd = runMultiTeamSimNoDeps(teams, numTrials, scopeModel);
     const { teamComp, prodComp } = wd;
     const levels = [50,70,85,95];
     const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
