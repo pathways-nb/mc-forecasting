@@ -3,23 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Monte Carlo Forecasting</title>
+<title>Forecast Studio</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --sidebar-w: 280px;
-  --blue: #4a8fe7;
-  --blue-dark: #3a7bd5;
-  --green: #27ae60;
-  --yellow: #f1c40f;
-  --orange: #e67e22;
-  --red: #c0392b;
-  --bg: #f7f8fa;
+  --blue: #555;
+  --blue-dark: #444;
+  --green: #555;
+  --yellow: #999;
+  --orange: #888;
+  --red: #aaa;
+  --bg: #f5f5f5;
   --card-bg: #fff;
-  --border: #e4e6ea;
-  --text: #1a1a2e;
+  --border: #e0e0e0;
+  --text: #222;
   --text-secondary: #666;
   --text-muted: #999;
+  --accent: #333;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.6; }
@@ -27,32 +28,32 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 /* ── Sidebar ── */
 .sidebar {
   position: fixed; top: 0; left: 0; width: var(--sidebar-w); height: 100vh;
-  background: #1e1e2e; color: #cdd6f4; display: flex; flex-direction: column;
+  background: #1a1a1a; color: #ccc; display: flex; flex-direction: column;
   z-index: 100; transition: width 0.25s ease, transform 0.25s ease;
   overflow: hidden;
 }
 .sidebar-header { padding: 20px 18px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .sidebar-header-text h1 { font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: -0.02em; white-space: nowrap; }
-.sidebar-header-text p { font-size: 0.7rem; color: #7f849c; margin-top: 2px; white-space: nowrap; }
+.sidebar-header-text p { font-size: 0.7rem; color: #777; margin-top: 2px; white-space: nowrap; }
 .sidebar-collapse-btn {
-  background: none; border: none; color: #7f849c; cursor: pointer; font-size: 1.1rem;
+  background: none; border: none; color: #777; cursor: pointer; font-size: 1.1rem;
   padding: 4px; border-radius: 4px; transition: color 0.15s, background 0.15s; flex-shrink: 0;
 }
 .sidebar-collapse-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
 .sidebar-nav { flex: 1; overflow-y: auto; padding: 10px 0; }
-.sidebar-nav .nav-section { padding: 8px 18px 4px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #585b70; white-space: nowrap; overflow: hidden; }
+.sidebar-nav .nav-section { padding: 8px 18px 4px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #666; white-space: nowrap; overflow: hidden; }
 .sidebar-nav a {
   display: flex; align-items: center; gap: 10px; padding: 7px 18px;
-  color: #bac2de; text-decoration: none; font-size: 0.82rem;
+  color: #aaa; text-decoration: none; font-size: 0.82rem;
   transition: background 0.12s, color 0.12s; cursor: pointer; white-space: nowrap; overflow: hidden;
 }
 .sidebar-nav a:hover { background: rgba(255,255,255,0.05); color: #fff; }
-.sidebar-nav a.active { background: rgba(74,143,231,0.15); color: #89b4fa; font-weight: 500; }
+.sidebar-nav a.active { background: rgba(255,255,255,0.08); color: #fff; font-weight: 500; }
 .sidebar-nav a .nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
 .sidebar-nav a .nav-label { overflow: hidden; text-overflow: ellipsis; }
 .sidebar-footer { padding: 12px 18px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 0.7rem; color: #585b70; white-space: nowrap; overflow: hidden; }
-.sidebar-footer a { color: #89b4fa; text-decoration: none; }
-.sidebar-footer a:hover { color: #b4d0fa; text-decoration: underline; }
+.sidebar-footer a { color: #aaa; text-decoration: none; }
+.sidebar-footer a:hover { color: #ddd; text-decoration: underline; }
 
 /* ── Sidebar collapsed ── */
 .sidebar.collapsed { width: 56px; }
@@ -84,7 +85,7 @@ body.sidebar-collapsed .main { margin-left: 56px; }
 /* ── Mobile ── */
 .mobile-toggle {
   display: none; position: fixed; top: 12px; left: 12px; z-index: 200;
-  background: #1e1e2e; color: #fff; border: none; border-radius: 8px;
+  background: #1a1a1a; color: #fff; border: none; border-radius: 8px;
   width: 40px; height: 40px; font-size: 1.2rem; cursor: pointer;
 }
 @media (max-width: 768px) {
@@ -105,7 +106,7 @@ h2.page-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
 label { display: block; font-size: 0.8rem; font-weight: 500; color: #555; margin-bottom: 4px; }
 input[type="text"], input[type="number"] { border: 1px solid #ccc; border-radius: 6px; padding: 8px 10px; font-size: 0.88rem; width: 100%; outline: none; transition: border-color 0.15s; }
 input[type="date"] { border: 1px solid #ccc; border-radius: 6px; padding: 8px 10px; font-size: 0.88rem; outline: none; }
-input:focus { border-color: var(--blue); }
+input:focus { border-color: #888; }
 select { border: 1px solid #ccc; border-radius: 6px; padding: 8px 10px; font-size: 0.88rem; outline: none; background: #fff; }
 
 /* ── Tooltips ── */
@@ -133,15 +134,15 @@ select { border: 1px solid #ccc; border-radius: 6px; padding: 8px 10px; font-siz
 .features-table th { text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #888; padding: 4px 8px; border-bottom: 1px solid #eee; }
 .features-table td { padding: 4px 8px; }
 .features-table input { width: 100%; }
-.features-table .remove-btn { background: none; border: none; color: var(--red); cursor: pointer; font-size: 1.1rem; padding: 0 4px; }
+.features-table .remove-btn { background: none; border: none; color: #999; cursor: pointer; font-size: 1.1rem; padding: 0 4px; }
 
 /* ── Buttons ── */
 .btn-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: background 0.15s; }
 .btn-secondary { background: #e8ecf1; color: #333; }
 .btn-secondary:hover { background: #dce1e8; }
-.btn-primary { background: var(--blue); color: #fff; }
-.btn-primary:hover { background: var(--blue-dark); }
+.btn-primary { background: #333; color: #fff; }
+.btn-primary:hover { background: #222; }
 .btn-run { padding: 12px 40px; font-size: 0.95rem; }
 
 /* ── Trial selector ── */
@@ -153,7 +154,7 @@ select { border: 1px solid #ccc; border-radius: 6px; padding: 8px 10px; font-siz
 }
 .trial-selector input[type="radio"] { display: none; }
 .trial-selector input[type="radio"]:checked + .trial-opt {
-  background: var(--blue); color: #fff; border-color: var(--blue);
+  background: #333; color: #fff; border-color: #333;
 }
 
 /* ── Mode toggle ── */
@@ -164,10 +165,10 @@ select { border: 1px solid #ccc; border-radius: 6px; padding: 8px 10px; font-siz
   border-right: 1px solid var(--border); transition: all 0.12s; color: #666;
 }
 .mode-toggle label:last-of-type { border-right: none; }
-.mode-toggle input[type="radio"]:checked + label { background: var(--blue); color: #fff; }
+.mode-toggle input[type="radio"]:checked + label { background: #333; color: #fff; }
 
 .outcome-note { font-size: 0.8rem; color: #777; margin-top: 10px; }
-.outcome-note strong { color: var(--orange); }
+.outcome-note strong { color: #444; }
 
 .results { display: none; }
 .results.visible { display: block; }
@@ -182,7 +183,7 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
   white-space: nowrap;
 }
 .chart-tooltip .tt-label { font-weight: 600; color: #fff; }
-.chart-tooltip .tt-val { color: #a0cfff; }
+.chart-tooltip .tt-val { color: #ccc; }
 
 /* ── Stats row ── */
 .stats-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0; }
@@ -218,18 +219,18 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
 .doc-content code { background: #f0f1f3; padding: 2px 6px; border-radius: 4px; font-size: 0.82rem; font-family: 'SF Mono', 'Fira Code', monospace; }
 .doc-content .callout { padding: 14px 16px; border-radius: 8px; margin: 16px 0; font-size: 0.85rem; display: flex; gap: 10px; align-items: flex-start; }
 .doc-content .callout-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
-.doc-content .callout-info { background: #e8f0fe; border-left: 3px solid var(--blue); }
-.doc-content .callout-tip { background: #e6f7ed; border-left: 3px solid var(--green); }
-.doc-content .callout-warn { background: #fef3e2; border-left: 3px solid var(--orange); }
-.doc-content .callout-formula { background: #f8f6ff; border-left: 3px solid #7c3aed; padding: 16px 18px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85rem; border-radius: 8px; margin: 16px 0; }
-.doc-content .callout-formula .formula-label { font-family: var(--font); font-weight: 600; font-size: 0.75rem; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+.doc-content .callout-info { background: #f5f5f5; border-left: 3px solid #888; }
+.doc-content .callout-tip { background: #f5f5f5; border-left: 3px solid #666; }
+.doc-content .callout-warn { background: #f5f5f5; border-left: 3px solid #aaa; }
+.doc-content .callout-formula { background: #f5f5f5; border-left: 3px solid #888; padding: 16px 18px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85rem; border-radius: 8px; margin: 16px 0; }
+.doc-content .callout-formula .formula-label { font-family: var(--font); font-weight: 600; font-size: 0.75rem; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
 .doc-content .example-box { background: #fafafa; border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin: 12px 0; font-size: 0.85rem; }
 .doc-content .example-box .example-label { font-weight: 600; font-size: 0.72rem; text-transform: uppercase; color: #888; margin-bottom: 6px; }
 .doc-content .step-list { counter-reset: steps; list-style: none; margin-left: 0; padding: 0; }
 .doc-content .step-list li { counter-increment: steps; position: relative; padding-left: 36px; margin-bottom: 14px; }
 .doc-content .step-list li::before {
   content: counter(steps); position: absolute; left: 0; top: 0;
-  width: 24px; height: 24px; border-radius: 50%; background: var(--blue); color: #fff;
+  width: 24px; height: 24px; border-radius: 50%; background: #444; color: #fff;
   font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; justify-content: center;
 }
 
@@ -245,34 +246,34 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
 .traffic-light {
   display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle;
 }
-.tl-green { background: #27ae60; }
-.tl-yellow { background: #f1c40f; }
-.tl-red { background: #c0392b; }
+.tl-green { background: #444; }
+.tl-yellow { background: #999; }
+.tl-red { background: #bbb; }
 .tl-grey { background: #ccc; }
 .portfolio-legend { display: flex; gap: 16px; margin-top: 10px; font-size: 0.72rem; color: #888; flex-wrap: wrap; }
 .portfolio-legend span { display: inline-flex; align-items: center; gap: 4px; }
-.cutline-row { background: #fef3e2 !important; }
-.cutline-row td { border-top: 2px dashed var(--orange); font-weight: 600; color: var(--orange); }
+.cutline-row { background: #f5f5f5 !important; }
+.cutline-row td { border-top: 2px dashed #999; font-weight: 600; color: #666; }
 
 /* ── Multi-Team Forecast ── */
 .teams-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.82rem; }
 .teams-table th { text-align: left; font-size: 0.7rem; text-transform: uppercase; color: #888; padding: 6px 8px; border-bottom: 2px solid #ddd; white-space: nowrap; }
 .teams-table td { padding: 4px 6px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
 .teams-table input[type="text"], .teams-table input[type="number"] { width: 100%; }
-.teams-table .remove-btn { background: none; border: none; color: var(--red); cursor: pointer; font-size: 1.1rem; padding: 0 4px; }
+.teams-table .remove-btn { background: none; border: none; color: #999; cursor: pointer; font-size: 1.1rem; padding: 0 4px; }
 .team-color-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; flex-shrink: 0; }
 .dep-badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; background: #f0f0f0; color: #666; margin: 1px 2px; }
-.dep-badge.has-dep { background: #fef3e2; color: #b35c00; border: 1px solid #f1c40f; }
-.dep-impact-card { padding: 14px 16px; border-radius: 8px; background: #f8f6ff; border-left: 3px solid #7c3aed; margin-bottom: 10px; font-size: 0.85rem; }
-.dep-impact-card .dep-title { font-weight: 600; margin-bottom: 6px; color: #3a1a7a; }
+.dep-badge.has-dep { background: #e8e8e8; color: #444; border: 1px solid #ccc; }
+.dep-impact-card { padding: 14px 16px; border-radius: 8px; background: #f5f5f5; border-left: 3px solid #888; margin-bottom: 10px; font-size: 0.85rem; }
+.dep-impact-card .dep-title { font-weight: 600; margin-bottom: 6px; color: #333; }
 .dep-impact-card .dep-detail { color: #555; line-height: 1.6; }
-.dep-compound { font-weight: 700; color: #7c3aed; }
+.dep-compound { font-weight: 700; color: #333; }
 .scenario-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
 .scenario-compare .scenario-col { border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
 .scenario-compare .scenario-col h4 { font-size: 0.85rem; font-weight: 600; margin-bottom: 10px; color: #333; padding-bottom: 6px; border-bottom: 1px solid #eee; }
 .scenario-delta { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
-.scenario-delta.positive { background: #fef3e2; color: #b35c00; }
-.scenario-delta.neutral { background: #e6f7ed; color: #1a6e3c; }
+.scenario-delta.positive { background: #eee; color: #444; }
+.scenario-delta.neutral { background: #eee; color: #666; }
 .mt-conf-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
 .mt-conf-card { text-align: center; padding: 12px 8px; border-radius: 8px; background: #f0f4f8; }
 .mt-conf-card .pct { font-size: 0.72rem; font-weight: 600; color: #888; text-transform: uppercase; }
@@ -298,10 +299,10 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
 <nav class="sidebar" id="sidebar">
   <div class="sidebar-header">
     <div class="sidebar-header-text">
-      <h1>MC Forecasting</h1>
+      <h1>Forecast Studio</h1>
       <p>Probabilistic delivery planning</p>
     </div>
-    <button class="sidebar-collapse-btn" id="collapseBtn" title="Collapse sidebar">&#9664;</button>
+    <button class="sidebar-collapse-btn" id="collapseBtn" title="Collapse sidebar">&#9776;</button>
   </div>
   <div class="sidebar-nav">
     <div class="nav-section">Tools</div>
@@ -815,10 +816,10 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
 
       <h3>Reading the results</h3>
       <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:16px;">
-        <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 8px;font-weight:600;width:140px;">Confidence levels</td><td style="padding:6px 8px;"><strong style="color:#c0392b;">50%</strong> = coin flip. <strong style="color:#e67e22;">70%</strong> = likely. <strong style="color:#f1c40f;">85%</strong> = recommended for commitments. <strong style="color:#27ae60;">95%</strong> = high confidence. Research shows 85th percentile forecasts are met or exceeded ~90% of the time.</td></tr>
+        <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 8px;font-weight:600;width:140px;">Confidence levels</td><td style="padding:6px 8px;"><strong style="color:#bbb;">50%</strong> = coin flip. <strong style="color:#999;">70%</strong> = likely. <strong style="color:#666;">85%</strong> = recommended for commitments. <strong style="color:#333;">95%</strong> = high confidence. Research shows 85th percentile forecasts are met or exceeded ~90% of the time.</td></tr>
         <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 8px;font-weight:600;">Histogram</td><td style="padding:6px 8px;">Shows the distribution of outcomes across all trials. The shape tells you about risk: a narrow distribution means low uncertainty, a wide one means high uncertainty.</td></tr>
         <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 8px;font-weight:600;">Simulation paths</td><td style="padding:6px 8px;">Each line is one trial. Burndown charts show remaining work decreasing over time. Buildup charts show items completed increasing over time.</td></tr>
-        <tr><td style="padding:6px 8px;font-weight:600;">Traffic lights</td><td style="padding:6px 8px;">When a target date is set: <span style="color:#27ae60;font-weight:600;">green</span> = 85th percentile meets target, <span style="color:#f1c40f;font-weight:600;">yellow</span> = within 1 iteration, <span style="color:#c0392b;font-weight:600;">red</span> = will likely miss.</td></tr>
+        <tr><td style="padding:6px 8px;font-weight:600;">Traffic lights</td><td style="padding:6px 8px;">When a target date is set: <strong>dark</strong> = 85th percentile meets target, <strong style="color:#999;">medium</strong> = within 1 iteration, <strong style="color:#bbb;">light</strong> = will likely miss.</td></tr>
       </table>
 
       <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
@@ -916,7 +917,7 @@ $('#collapseBtn').onclick = () => {
   const sidebar = $('#sidebar');
   const isCollapsed = sidebar.classList.toggle('collapsed');
   document.body.classList.toggle('sidebar-collapsed', isCollapsed);
-  $('#collapseBtn').innerHTML = isCollapsed ? '&#9654;' : '&#9664;';
+  $('#collapseBtn').innerHTML = '&#9776;';
   $('#collapseBtn').title = isCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
 };
 
@@ -1102,7 +1103,7 @@ function updateOutcome() {
   const wip = parseInt(wipSlider.value);
   if (tp.length === 0) { $('#outcomeNote').innerHTML = ''; return; }
   const dq = dataQuality(tp.length);
-  const dqColor = dq >= 85 ? 'var(--green)' : dq >= 70 ? 'var(--orange)' : 'var(--red)';
+  const dqColor = dq >= 85 ? '#333' : dq >= 70 ? '#888' : '#bbb';
   const dqTip = dq >= 85 ? 'Good — your sample reliably represents the team\'s throughput patterns.' : dq >= 70 ? 'Decent — consider adding more data points to improve forecast reliability.' : 'Weak — with few samples, the simulation may miss important throughput variations (e.g. holidays, incidents). Aim for 8+ iterations of history.';
   $('#outcomeNote').innerHTML = `Data quality: <strong style="color:${dqColor}">${dq.toFixed(0)}%</strong> (${tp.length} samples) <span class="info-tip" style="position:relative;top:-1px;">?<span class="tip-text">Measures how representative your throughput sample is, using the formula (n&minus;1)/(n+1). More historical data points = better capture of real-world variation (zero-throughput weeks, holidays, incidents). Aim for 8+ iterations. ${dqTip}</span></span>`;
 }
@@ -1391,7 +1392,7 @@ function drawBurndown(canvas, paths, totalRemaining, confidenceWeeks, xAxisLabel
 
   // Trial paths
   ctx.globalAlpha = Math.max(0.04, Math.min(0.25, 8 / paths.length));
-  ctx.strokeStyle = '#4a8fe7'; ctx.lineWidth = 1.2;
+  ctx.strokeStyle = '#888'; ctx.lineWidth = 1.2;
   paths.forEach(path => {
     ctx.beginPath();
     path.forEach((v, i) => { i === 0 ? ctx.moveTo(xScale(i), yScale(v)) : ctx.lineTo(xScale(i), yScale(v)); });
@@ -1400,7 +1401,7 @@ function drawBurndown(canvas, paths, totalRemaining, confidenceWeeks, xAxisLabel
   ctx.globalAlpha = 1;
 
   // Confidence markers at y=0
-  const lineColors = { 50: '#c0392b', 70: '#e67e22', 85: '#f1c40f', 95: '#27ae60' };
+  const lineColors = { 50: '#bbb', 70: '#999', 85: '#666', 95: '#333' };
   Object.entries(confidenceWeeks).forEach(([p, wk]) => {
     const x = xScale(wk);
     ctx.strokeStyle = lineColors[p] || '#888';
@@ -1449,7 +1450,7 @@ function drawBuildup(canvas, paths, maxItems, confidenceIters, xAxisLabel) {
 
   // Trial paths
   ctx.globalAlpha = Math.max(0.04, Math.min(0.25, 8 / paths.length));
-  ctx.strokeStyle = '#4a8fe7'; ctx.lineWidth = 1.2;
+  ctx.strokeStyle = '#888'; ctx.lineWidth = 1.2;
   paths.forEach(path => {
     ctx.beginPath();
     path.forEach((v, i) => { i === 0 ? ctx.moveTo(xScale(i), yScale(v)) : ctx.lineTo(xScale(i), yScale(v)); });
@@ -1458,7 +1459,7 @@ function drawBuildup(canvas, paths, maxItems, confidenceIters, xAxisLabel) {
   ctx.globalAlpha = 1;
 
   // Confidence markers at final iteration
-  const lineColors = { 50: '#c0392b', 70: '#e67e22', 85: '#f1c40f', 95: '#27ae60' };
+  const lineColors = { 50: '#bbb', 70: '#999', 85: '#666', 95: '#333' };
   Object.entries(confidenceIters).forEach(([p, val]) => {
     const y = yScale(val);
     ctx.strokeStyle = lineColors[p] || '#888';
@@ -1587,7 +1588,7 @@ function drawHistogram(canvas, sortedData, confidenceLevels, xLabel, mode, barCo
   ctx.fillText('Frequency', 0, 0); ctx.restore();
 
   // Confidence lines
-  const lineColors = { 50: '#c0392b', 70: '#e67e22', 85: '#f1c40f', 95: '#27ae60' };
+  const lineColors = { 50: '#bbb', 70: '#999', 85: '#666', 95: '#333' };
   confidenceLevels.forEach(p => {
     const val = confValues[p];
     // Find bar index for this value
@@ -1663,7 +1664,7 @@ function showStats(el, sortedData, sampleCount) {
   const med = Math.round(percentile(sortedData, 50));
   const sd = stdev(sortedData).toFixed(1);
   const dq = sampleCount ? dataQuality(sampleCount) : null;
-  const dqColor = dq >= 85 ? 'var(--green)' : dq >= 70 ? 'var(--orange)' : 'var(--red)';
+  const dqColor = dq >= 85 ? '#333' : dq >= 70 ? '#888' : '#bbb';
   el.innerHTML = `
     <span class="stat-chip">Trials: <strong>${n.toLocaleString()}</strong></span>
     <span class="stat-chip">Min: <strong>${mn}</strong></span>
@@ -1711,7 +1712,7 @@ $('#sRunBtn').onclick = () => {
       const nominalTotal = Math.round((feature.low + feature.high) / 2);
       drawBurndown($('#sBurndownChart'), burndownPaths, nominalTotal, confWeeks, il === 1 ? 'Week' : 'Iteration');
 
-      const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
+      const colors = ['#bbb','#999','#666','#333'];
       $('#sConfGrid').innerHTML = levels.map((p,i) => {
         const iters = confWeeks[p];
         const dateStr = addWeeksToDate(startDate, iters, il);
@@ -1723,7 +1724,7 @@ $('#sRunBtn').onclick = () => {
       }).join('');
 
       const xLabel = il === 1 ? 'Weeks to complete' : 'Iterations to complete';
-      const layout = drawHistogram($('#sHistogram'), results, levels, xLabel, 'duration', '#4a8fe7');
+      const layout = drawHistogram($('#sHistogram'), results, levels, xLabel, 'duration', '#888');
       sHistBarRef.current = layout.barLayout;
       showStats($('#sStatsRow'), results, throughputData.length);
 
@@ -1744,7 +1745,7 @@ $('#sRunBtn').onclick = () => {
       $('#sCapPathsCard').style.display = '';
       $('#sHistTitle').textContent = 'Items Forecast Distribution';
 
-      const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
+      const colors = ['#bbb','#999','#666','#333'];
       const labels = ['Aggressive','Moderate','Recommended','Conservative'];
       $('#sCapGrid').innerHTML = levels.map((p,i) => {
         const items = Math.floor(percentile(results, 100-p));
@@ -1756,7 +1757,7 @@ $('#sRunBtn').onclick = () => {
         </div>`;
       }).join('');
 
-      const layout = drawHistogram($('#sHistogram'), results, levels, `Total items in ${horizonWeeks} weeks (${iterations} iter${iterations!==1?'s':''})`, 'capacity', '#4a8fe7');
+      const layout = drawHistogram($('#sHistogram'), results, levels, `Total items in ${horizonWeeks} weeks (${iterations} iter${iterations!==1?'s':''})`, 'capacity', '#888');
       sHistBarRef.current = layout.barLayout;
       showStats($('#sStatsRow'), results, throughputData.length);
 
@@ -1828,7 +1829,7 @@ $('#runBtn').onclick = () => {
       $('#mfCapResultCard').style.display = '';
       $('#mfCapGridCard').style.display = '';
 
-      const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
+      const colors = ['#bbb','#999','#666','#333'];
       const labels = ['Aggressive','Moderate','Recommended','Conservative'];
       $('#mfCapGrid').innerHTML = levels.map((p,i) => {
         const items = Math.floor(percentile(results, 100-p));
@@ -1840,7 +1841,7 @@ $('#runBtn').onclick = () => {
         </div>`;
       }).join('');
 
-      const layout = drawHistogram($('#mfCapHistogram'), results, levels, `Total items in ${horizonWeeks} weeks (${iterations} iter${iterations!==1?'s':''})`, 'capacity', '#4a8fe7');
+      const layout = drawHistogram($('#mfCapHistogram'), results, levels, `Total items in ${horizonWeeks} weeks (${iterations} iter${iterations!==1?'s':''})`, 'capacity', '#888');
       mfCapHistBarRef.current = layout.barLayout;
       showStats($('#mfCapStatsRow'), results, throughputData.length);
 
@@ -1911,7 +1912,7 @@ $('#runBtn').onclick = () => {
 
     // Histogram
     const xLabel = il === 1 ? 'Weeks to complete' : 'Iterations to complete';
-    const layout = drawHistogram($('#histogram'), results, levels, xLabel, 'duration', '#4a8fe7');
+    const layout = drawHistogram($('#histogram'), results, levels, xLabel, 'duration', '#888');
     histBarRef.current = layout.barLayout;
 
     // Stats + data quality
@@ -2047,7 +2048,7 @@ $('#runBtn').onclick = () => {
 // ── Multi-Team Product Forecast ──
 // ══════════════════════════════════════════════════════
 
-const MT_COLORS = ['#4a8fe7','#27ae60','#e67e22','#c0392b','#9b59b6','#1abc9c','#f39c12','#2980b9','#e91e63','#00bcd4'];
+const MT_COLORS = ['#333','#666','#999','#bbb','#444','#777','#aaa','#555','#888','#ccc'];
 let mtTeamId = 0;
 $('#mtStartDate').valueAsDate = new Date();
 
@@ -2198,7 +2199,7 @@ function mtDepImpactHtml(teams, tc, ndTc, targetIter, il, sd, numTrials) {
       const exact = tc[i].filter(v=>v<=targetIter).length / numTrials;
       cpHtml = `<br>Compound probability (all deps done by target): ${t.dependsOn.map((di,k)=>`P(${teams[di].name})=${(dps[k]*100).toFixed(1)}%`).join(' &times; ')} = <span class="dep-compound">${(approx*100).toFixed(1)}%</span> (approx)<br>Exact simulation P(${t.name} done by target): <span class="dep-compound">${(exact*100).toFixed(1)}%</span>`;
     }
-    h += `<div class="dep-impact-card"><div class="dep-title">${t.name} depends on: ${dn}</div><div class="dep-detail">85th pctl with deps: <strong>${iterLabel(il,p85w)}${sd?' ('+addWeeksToDate(sd,p85w,il)+')':''}</strong><br>85th pctl if independent: <strong>${iterLabel(il,p85n)}${sd?' ('+addWeeksToDate(sd,p85n,il)+')':''}</strong><br>Dependency cost: <strong style="color:${shift>0?'var(--orange)':'var(--green)'}">${shift>0?'+':''}${iterLabel(il,Math.abs(shift))}${shift>0?' later':shift<0?' earlier':' (no change)'}</strong>${cpHtml}</div></div>`;
+    h += `<div class="dep-impact-card"><div class="dep-title">${t.name} depends on: ${dn}</div><div class="dep-detail">85th pctl with deps: <strong>${iterLabel(il,p85w)}${sd?' ('+addWeeksToDate(sd,p85w,il)+')':''}</strong><br>85th pctl if independent: <strong>${iterLabel(il,p85n)}${sd?' ('+addWeeksToDate(sd,p85n,il)+')':''}</strong><br>Dependency cost: <strong style="color:${shift>0?'#555':'#888'}">${shift>0?'+':''}${iterLabel(il,Math.abs(shift))}${shift>0?' later':shift<0?' earlier':' (no change)'}</strong>${cpHtml}</div></div>`;
   });
   return h;
 }
@@ -2217,7 +2218,7 @@ function mtScenarioHtml(wd, nd, il, sd, levels) {
       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.82rem;"><span style="color:#888;">${p}%</span><span>${fmtVal(n)}</span><span>${fmtVal(w)}</span><span class="scenario-delta ${d>0?'positive':'neutral'}">${d>0?'+':''}${iterLabel(il,Math.abs(d))}${d>0?' later':d<0?' earlier':''}</span></div>`;
     }).join('');
   }
-  return `<div class="scenario-col"><h4>All Parallel (no deps)</h4>${rows(nd.prodComp)}</div><div class="scenario-col"><h4>With Dependencies (actual)</h4>${rows(wd.prodComp)}</div><div class="scenario-col" style="grid-column:1/-1;background:#fffef7;border-color:#f1c40f;"><h4 style="color:#8a6000;">Time Cost of Dependencies</h4>${deltas(wd.prodComp,nd.prodComp)}</div>`;
+  return `<div class="scenario-col"><h4>All Parallel (no deps)</h4>${rows(nd.prodComp)}</div><div class="scenario-col"><h4>With Dependencies (actual)</h4>${rows(wd.prodComp)}</div><div class="scenario-col" style="grid-column:1/-1;background:#f5f5f5;border-color:#ccc;"><h4 style="color:#333;">Time Cost of Dependencies</h4>${deltas(wd.prodComp,nd.prodComp)}</div>`;
 }
 
 // ── Multi-Team: Tooltip + Run Handler ──
@@ -2248,7 +2249,7 @@ $('#mtRunBtn').onclick = () => {
     const nd = runMultiTeamSimNoDeps(teams, numTrials);
     const { teamComp, prodComp } = wd;
     const levels = [50,70,85,95];
-    const colors = ['#c0392b','#e67e22','#f1c40f','#27ae60'];
+    const colors = ['#bbb','#999','#666','#333'];
 
     $('#mtResults').classList.add('visible');
 
@@ -2261,7 +2262,7 @@ $('#mtRunBtn').onclick = () => {
 
     // Histogram
     const xLbl = il===1?'Weeks to product completion':'Iterations to product completion';
-    const layout = drawHistogram($('#mtHistogram'), prodComp, levels, xLbl, 'duration', '#4a8fe7');
+    const layout = drawHistogram($('#mtHistogram'), prodComp, levels, xLbl, 'duration', '#888');
     mtHistBarRef.current = layout.barLayout;
     showStats($('#mtStatsRow'), prodComp, null);
 
