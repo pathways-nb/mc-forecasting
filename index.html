@@ -1364,7 +1364,7 @@ function drawBuildup(canvas, paths, maxItems, confidenceIters, xAxisLabel) {
 
   // Trial paths
   ctx.globalAlpha = Math.max(0.04, Math.min(0.25, 8 / paths.length));
-  ctx.strokeStyle = '#27ae60'; ctx.lineWidth = 1.2;
+  ctx.strokeStyle = '#4a8fe7'; ctx.lineWidth = 1.2;
   paths.forEach(path => {
     ctx.beginPath();
     path.forEach((v, i) => { i === 0 ? ctx.moveTo(xScale(i), yScale(v)) : ctx.lineTo(xScale(i), yScale(v)); });
@@ -1755,7 +1755,7 @@ $('#runBtn').onclick = () => {
         </div>`;
       }).join('');
 
-      const layout = drawHistogram($('#mfCapHistogram'), results, levels, `Total items in ${horizonWeeks} weeks (${iterations} iter${iterations!==1?'s':''})`, 'capacity');
+      const layout = drawHistogram($('#mfCapHistogram'), results, levels, `Total items in ${horizonWeeks} weeks (${iterations} iter${iterations!==1?'s':''})`, 'capacity', '#4a8fe7');
       mfCapHistBarRef.current = layout.barLayout;
       showStats($('#mfCapStatsRow'), results, throughputData.length);
 
@@ -1826,7 +1826,7 @@ $('#runBtn').onclick = () => {
 
     // Histogram
     const xLabel = il === 1 ? 'Weeks to complete' : 'Iterations to complete';
-    const layout = drawHistogram($('#histogram'), results, levels, xLabel, 'duration');
+    const layout = drawHistogram($('#histogram'), results, levels, xLabel, 'duration', '#4a8fe7');
     histBarRef.current = layout.barLayout;
 
     // Stats + data quality
@@ -2175,7 +2175,7 @@ $('#mtRunBtn').onclick = () => {
 
     // Histogram
     const xLbl = il===1?'Weeks to product completion':'Iterations to product completion';
-    const layout = drawHistogram($('#mtHistogram'), prodComp, levels, xLbl, 'duration');
+    const layout = drawHistogram($('#mtHistogram'), prodComp, levels, xLbl, 'duration', '#4a8fe7');
     mtHistBarRef.current = layout.barLayout;
     showStats($('#mtStatsRow'), prodComp, null);
 
