@@ -1166,39 +1166,49 @@ function runFeatureSimulationShared(throughputData, features, numTrials, wipLimi
       for (const i of activeSet) { if (remaining[i] > 0) activeIndices.push(i); }
       if (activeIndices.length === 0) break;
 
-      for (let u = 0; u < tp; u++) {
-        if (activeIndices.length === 0) break;
-        let pick;
-        if (weights) {
-          // Weighted random pick among active features
-          let activeWeights = activeIndices.map(i => weights[i]);
-          const awSum = activeWeights.reduce((a, b) => a + b, 0);
-          if (awSum <= 0) { pick = Math.floor(Math.random() * activeIndices.length); }
-          else {
-            const r = Math.random() * awSum;
-            let cum = 0;
-            pick = 0;
-            for (let k = 0; k < activeWeights.length; k++) {
-              cum += activeWeights[k];
-              if (r < cum) { pick = k; break; }
-            }
-          }
-        } else {
-          pick = Math.floor(Math.random() * activeIndices.length);
-        }
-        const idx = activeIndices[pick];
-        remaining[idx]--;
+      // Proportional allocation (Magennis): split throughput by weight among active features
+      let activeWeights = activeIndices.map(i => weights ? weights[i] : 1);
+      const awSum = activeWeights.reduce((a, b) => a + b, 0);
+      let tpLeft = tp;
+      for (let k = 0; k < activeIndices.length; k++) {
+        const idx = activeIndices[k];
+        const share = (awSum > 0) ? tp * (activeWeights[k] / awSum) : tp / activeIndices.length;
+        // Fractional part: randomly round up or down to preserve expected value
+        const base = Math.floor(share);
+        const give = base + (Math.random() < (share - base) ? 1 : 0);
+        const actual = Math.min(give, remaining[idx]);
+        remaining[idx] -= actual;
+        tpLeft -= actual;
         if (remaining[idx] <= 0) {
           remaining[idx] = 0;
           if (done[idx] === 0) done[idx] = iter;
-          activeIndices.splice(pick, 1);
-          // Pull next feature from backlog into active pool
           activeSet.delete(idx);
           if (nextInQueue < features.length) {
             activeSet.add(nextInQueue);
-            activeIndices.push(nextInQueue); // can receive throughput this same iteration
             nextInQueue++;
           }
+        }
+      }
+      // Distribute any leftover throughput (from completed features) to remaining active
+      while (tpLeft > 0) {
+        const still = [];
+        for (const i of activeSet) { if (remaining[i] > 0) still.push(i); }
+        if (still.length === 0) break;
+        const each = Math.max(1, Math.floor(tpLeft / still.length));
+        for (const i of still) {
+          const give = Math.min(each, tpLeft, remaining[i]);
+          remaining[i] -= give;
+          tpLeft -= give;
+          if (remaining[i] <= 0) {
+            remaining[i] = 0;
+            if (done[i] === 0) done[i] = iter;
+            activeSet.delete(i);
+            if (nextInQueue < features.length) {
+              activeSet.add(nextInQueue);
+              nextInQueue++;
+            }
+          }
+          if (tpLeft <= 0) break;
         }
       }
 
