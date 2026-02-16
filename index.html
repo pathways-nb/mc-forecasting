@@ -797,72 +797,181 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
   <!-- ════════ Quick Guide ════════ -->
   <div class="page" id="page-guide">
     <h2 class="page-title">Quick Guide</h2>
-    <p class="page-subtitle">How to use the Monte Carlo forecasting tools</p>
+    <p class="page-subtitle">Understand Monte Carlo forecasting and how to use each tool</p>
 
+    <!-- Section 1: What & Why -->
     <div class="card full-width" style="max-width:900px;">
+      <h3 style="margin-top:0;font-size:1.1rem;">What is Monte Carlo forecasting?</h3>
+      <p style="font-size:0.88rem;color:#444;line-height:1.7;">Traditional estimation asks: <em>"How long will this take?"</em> and produces a single number that's almost always wrong. Monte Carlo forecasting asks a better question: <em>"What are the possible outcomes, and how likely is each?"</em></p>
+      <p style="font-size:0.88rem;color:#444;line-height:1.7;">The simulation runs hundreds or thousands of trials. Each trial randomly samples from your real throughput history and simulates work progressing week by week until complete. The result is a probability distribution &mdash; not one answer, but a range of outcomes with confidence levels.</p>
+    </div>
 
-      <h3 style="margin-top:0;">What is Monte Carlo forecasting?</h3>
-      <p>Instead of a single estimate, Monte Carlo simulation runs hundreds of random trials using your real throughput data. Each trial samples a random throughput value per iteration and simulates work completion. The result is a probability distribution: "There's an 85% chance we'll finish by iteration X."</p>
+    <!-- Section 2: Walkthrough Example -->
+    <div class="card full-width" style="max-width:900px;">
+      <h3 style="margin-top:0;font-size:1.1rem;">How it works: a step-by-step example</h3>
+      <p style="font-size:0.85rem;color:#555;margin-bottom:16px;">Imagine your team has 20 user stories remaining, and over the past 6 weeks they completed: <strong>3, 5, 4, 2, 6, 4</strong> stories per week.</p>
 
-      <h3>Key inputs</h3>
-      <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:16px;">
-        <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 8px;font-weight:600;width:140px;">Throughput</td><td style="padding:6px 8px;">Items completed per iteration (comma-separated). Use real historical data. Include zeros &mdash; they represent sprints with no delivery and are important for realism.</td></tr>
-        <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 8px;font-weight:600;">Scope (Low / High)</td><td style="padding:6px 8px;">The range of remaining items. Each trial picks a random value between low and high. Use low for optimistic, high for pessimistic.</td></tr>
-        <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 8px;font-weight:600;">Split rate</td><td style="padding:6px 8px;">Accounts for scope growth (items splitting into sub-items). A range like "1.0&ndash;1.3" means scope may grow 0&ndash;30%. Leave empty or set to "1.0" for no growth.</td></tr>
-        <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 8px;font-weight:600;">Iteration length</td><td style="padding:6px 8px;">1, 2, or 3 weeks. All dates and labels adjust accordingly.</td></tr>
-        <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 8px;font-weight:600;">Trials</td><td style="padding:6px 8px;">Number of simulation runs. 500 is sufficient for most cases. Use 10,000+ for multi-team forecasts.</td></tr>
-        <tr><td style="padding:6px 8px;font-weight:600;">Data quality</td><td style="padding:6px 8px;">Calculated as (n&minus;1)/(n+1) where n is the number of throughput samples. Aim for 8+ data points (78%+). More history = more reliable forecasts.</td></tr>
+      <div style="display:grid;grid-template-columns:36px 1fr;gap:0 14px;font-size:0.85rem;line-height:1.7;">
+        <div style="background:#444;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:0.75rem;">1</div>
+        <div style="padding-top:3px;margin-bottom:14px;"><strong>Trial 1 begins.</strong> Randomly pick a throughput: <strong>4</strong>. Remaining: 20 &minus; 4 = 16 stories.</div>
+        <div style="background:#444;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:0.75rem;">2</div>
+        <div style="padding-top:3px;margin-bottom:14px;"><strong>Week 2.</strong> Randomly pick: <strong>6</strong>. Remaining: 16 &minus; 6 = 10.</div>
+        <div style="background:#444;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:0.75rem;">3</div>
+        <div style="padding-top:3px;margin-bottom:14px;"><strong>Week 3.</strong> Pick: <strong>3</strong>. Remaining: 10 &minus; 3 = 7.</div>
+        <div style="background:#444;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:0.75rem;">4</div>
+        <div style="padding-top:3px;margin-bottom:14px;"><strong>Week 4.</strong> Pick: <strong>5</strong>. Remaining: 7 &minus; 5 = 2.</div>
+        <div style="background:#444;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:0.75rem;">5</div>
+        <div style="padding-top:3px;margin-bottom:14px;"><strong>Week 5.</strong> Pick: <strong>4</strong>. Remaining: 2 &minus; 4 = 0. Done! <strong>Trial 1 result: 5 weeks.</strong></div>
+      </div>
+
+      <div style="background:#f5f5f5;border-radius:8px;padding:14px 16px;margin:8px 0 16px;font-size:0.85rem;line-height:1.7;">
+        <strong>Trial 2</strong> might pick: 2, 3, 2, 4, 5, 3 &rarr; finishes in <strong>6 weeks</strong>.<br>
+        <strong>Trial 3</strong> might pick: 6, 5, 6, 4 &rarr; finishes in <strong>4 weeks</strong>.<br>
+        <strong>...</strong><br>
+        After <strong>500 trials</strong>, you might find: 50% finish by week 5, 85% by week 6, 95% by week 7.
+      </div>
+
+      <p style="font-size:0.85rem;color:#444;line-height:1.7;">Each trial is different because the throughput is randomly sampled each week &mdash; just like in reality, your team's output varies. The simulation captures this uncertainty naturally, without anyone having to guess.</p>
+    </div>
+
+    <!-- Section 3: Scope Uncertainty -->
+    <div class="card full-width" style="max-width:900px;">
+      <h3 style="margin-top:0;font-size:1.1rem;">Scope uncertainty: the Size-Growth-Pace model</h3>
+      <p style="font-size:0.85rem;color:#444;line-height:1.7;">In reality, you rarely know the exact scope. The tool uses Troy Magennis's <strong>Size-Growth-Pace (SGP)</strong> model to capture this:</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:12px 0;font-size:0.82rem;">
+        <div style="background:#f5f5f5;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-weight:700;font-size:0.95rem;margin-bottom:4px;">Size</div>
+          <div style="color:#555;">Low&ndash;High range<br><span style="color:#888;font-size:0.75rem;">e.g. 15&ndash;25 items</span></div>
+        </div>
+        <div style="background:#f5f5f5;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-weight:700;font-size:0.95rem;margin-bottom:4px;">Growth</div>
+          <div style="color:#555;">Split rate multiplier<br><span style="color:#888;font-size:0.75rem;">e.g. 1.0&ndash;1.3 (up to 30% growth)</span></div>
+        </div>
+        <div style="background:#f5f5f5;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-weight:700;font-size:0.95rem;margin-bottom:4px;">Pace</div>
+          <div style="color:#555;">Throughput per iteration<br><span style="color:#888;font-size:0.75rem;">e.g. 3, 5, 4, 2, 6, 4</span></div>
+        </div>
+      </div>
+      <p style="font-size:0.85rem;color:#444;line-height:1.7;">Each trial randomly picks a scope within Low&ndash;High, multiplies by a random split rate, then simulates week-by-week throughput until done. This means every trial faces different scope <em>and</em> different throughput &mdash; capturing both sources of uncertainty.</p>
+    </div>
+
+    <!-- Section 4: Tools -->
+    <div class="card full-width" style="max-width:900px;">
+      <h3 style="margin-top:0;font-size:1.1rem;">The tools</h3>
+
+      <div style="border-left:3px solid #444;padding:12px 16px;margin:16px 0;background:#fafafa;border-radius:0 8px 8px 0;">
+        <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px;">Single Feature</div>
+        <p style="font-size:0.85rem;color:#555;margin:0 0 8px;line-height:1.6;">Forecast one feature or epic for a single team.</p>
+        <div style="font-size:0.82rem;color:#444;line-height:1.7;">
+          <strong>When will it ship?</strong> &mdash; Enter scope (Low/High), split rate, and throughput history. Get a probabilistic completion date with confidence levels and a burndown chart showing simulation paths.<br>
+          <strong>How many can I finish?</strong> &mdash; Enter a time horizon (e.g. 12 weeks). See how many items you can likely deliver, with a buildup chart.
+        </div>
+      </div>
+
+      <div style="border-left:3px solid #888;padding:12px 16px;margin:16px 0;background:#fafafa;border-radius:0 8px 8px 0;">
+        <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px;">Multi-Feature</div>
+        <p style="font-size:0.85rem;color:#555;margin:0 0 8px;line-height:1.6;">Forecast multiple features sharing one team's throughput.</p>
+        <div style="font-size:0.82rem;color:#444;line-height:1.7;">
+          <strong>Throughput modes:</strong> <em>Shared pool</em> splits one throughput stream proportionally across features. <em>Per-feature</em> gives each feature its own independent throughput data.<br>
+          <strong>WIP limit:</strong> Controls how many features run in parallel. Lower WIP = more focus per feature, individual features finish sooner, but overall portfolio may take longer.<br>
+          <strong>Allocation %:</strong> In shared pool mode, you can weight how much throughput each feature receives (e.g. 50% to Feature A, 25% each to B and C).
+        </div>
+      </div>
+
+      <div style="border-left:3px solid #bbb;padding:12px 16px;margin:16px 0;background:#fafafa;border-radius:0 8px 8px 0;">
+        <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px;">Multi-Team</div>
+        <p style="font-size:0.85rem;color:#555;margin:0 0 8px;line-height:1.6;">Forecast a product delivered by multiple teams with optional dependencies.</p>
+        <div style="font-size:0.82rem;color:#444;line-height:1.7;">
+          Each team has its own throughput, scope, and split rate. <strong>Dependencies</strong> mean a team cannot start until all its prerequisites finish &mdash; simulated per trial, so the delay compounds naturally.<br>
+          <strong>Product completion</strong> = MAX of all team finish times.<br>
+          <strong>Dependency impact</strong> shows the exact time cost: how much later the product ships because of dependencies, with side-by-side comparison of with-deps vs without-deps scenarios.
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 5: Reading Results -->
+    <div class="card full-width" style="max-width:900px;">
+      <h3 style="margin-top:0;font-size:1.1rem;">Reading the results</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;font-size:0.82rem;">
+        <div style="background:#f5f5f5;border-radius:8px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:6px;">Confidence levels</div>
+          <div style="color:#555;line-height:1.7;">
+            <span style="display:inline-block;width:10px;height:10px;background:#bbb;border-radius:2px;margin-right:4px;vertical-align:middle;"></span> <strong>50%</strong> &mdash; coin flip, too risky for commitments<br>
+            <span style="display:inline-block;width:10px;height:10px;background:#999;border-radius:2px;margin-right:4px;vertical-align:middle;"></span> <strong>70%</strong> &mdash; probable, good for internal targets<br>
+            <span style="display:inline-block;width:10px;height:10px;background:#666;border-radius:2px;margin-right:4px;vertical-align:middle;"></span> <strong>85%</strong> &mdash; recommended for commitments<br>
+            <span style="display:inline-block;width:10px;height:10px;background:#333;border-radius:2px;margin-right:4px;vertical-align:middle;"></span> <strong>95%</strong> &mdash; high confidence, conservative
+          </div>
+        </div>
+        <div style="background:#f5f5f5;border-radius:8px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:6px;">Charts</div>
+          <div style="color:#555;line-height:1.7;">
+            <strong>Histogram:</strong> Distribution of outcomes. Narrow = low risk. Wide = high uncertainty.<br>
+            <strong>Burndown paths:</strong> Lines going down &mdash; remaining work over time.<br>
+            <strong>Buildup paths:</strong> Lines going up &mdash; items completed over time.<br>
+            <strong>Dashed lines:</strong> Confidence thresholds on the chart.
+          </div>
+        </div>
+      </div>
+      <p style="font-size:0.82rem;color:#555;line-height:1.7;margin-top:8px;">Research by Nick Brown across 25 teams found that <strong>85th percentile forecasts were met or exceeded ~90% of the time</strong>. This makes 85% the practical sweet spot &mdash; confident enough for commitments without excessive padding.</p>
+    </div>
+
+    <!-- Section 6: Key Inputs -->
+    <div class="card full-width" style="max-width:900px;">
+      <h3 style="margin-top:0;font-size:1.1rem;">Input reference</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+        <thead><tr style="border-bottom:2px solid #ddd;"><th style="text-align:left;padding:8px;font-size:0.7rem;text-transform:uppercase;color:#888;">Input</th><th style="text-align:left;padding:8px;font-size:0.7rem;text-transform:uppercase;color:#888;">What to enter</th><th style="text-align:left;padding:8px;font-size:0.7rem;text-transform:uppercase;color:#888;">Example</th></tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px;font-weight:600;">Throughput</td><td style="padding:8px;color:#555;">Items completed per iteration, comma-separated. Include zeros.</td><td style="padding:8px;color:#888;"><code style="background:#f0f1f3;padding:2px 6px;border-radius:4px;">3, 5, 4, 0, 6, 4, 3, 5</code></td></tr>
+          <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px;font-weight:600;">Scope Low / High</td><td style="padding:8px;color:#555;">Range of remaining items. Low = optimistic, High = pessimistic.</td><td style="padding:8px;color:#888;">Low: <code style="background:#f0f1f3;padding:2px 6px;border-radius:4px;">12</code> High: <code style="background:#f0f1f3;padding:2px 6px;border-radius:4px;">18</code></td></tr>
+          <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px;font-weight:600;">Split rate</td><td style="padding:8px;color:#555;">Scope growth multiplier. "1.0" = no growth. "1.0-1.3" = 0&ndash;30% growth.</td><td style="padding:8px;color:#888;"><code style="background:#f0f1f3;padding:2px 6px;border-radius:4px;">1.0-1.2</code></td></tr>
+          <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px;font-weight:600;">Iteration length</td><td style="padding:8px;color:#555;">Duration of one iteration: 1, 2, or 3 weeks.</td><td style="padding:8px;color:#888;">1 week</td></tr>
+          <tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:8px;font-weight:600;">Trials</td><td style="padding:8px;color:#555;">Number of simulation runs. 500 is enough for most cases.</td><td style="padding:8px;color:#888;">500 or 10,000</td></tr>
+          <tr><td style="padding:8px;font-weight:600;">Data quality</td><td style="padding:8px;color:#555;">Auto-calculated: (n&minus;1)/(n+1). Aim for 8+ throughput samples (78%+).</td><td style="padding:8px;color:#888;">8 samples &rarr; 78%</td></tr>
+        </tbody>
       </table>
+    </div>
 
-      <h3>Reading the results</h3>
-      <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:16px;">
-        <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 8px;font-weight:600;width:140px;">Confidence levels</td><td style="padding:6px 8px;"><strong style="color:#bbb;">50%</strong> = coin flip. <strong style="color:#999;">70%</strong> = likely. <strong style="color:#666;">85%</strong> = recommended for commitments. <strong style="color:#333;">95%</strong> = high confidence. Research shows 85th percentile forecasts are met or exceeded ~90% of the time.</td></tr>
-        <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 8px;font-weight:600;">Histogram</td><td style="padding:6px 8px;">Shows the distribution of outcomes across all trials. The shape tells you about risk: a narrow distribution means low uncertainty, a wide one means high uncertainty.</td></tr>
-        <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 8px;font-weight:600;">Simulation paths</td><td style="padding:6px 8px;">Each line is one trial. Burndown charts show remaining work decreasing over time. Buildup charts show items completed increasing over time.</td></tr>
-        <tr><td style="padding:6px 8px;font-weight:600;">Traffic lights</td><td style="padding:6px 8px;">When a target date is set: <strong>dark</strong> = 85th percentile meets target, <strong style="color:#999;">medium</strong> = within 1 iteration, <strong style="color:#bbb;">light</strong> = will likely miss.</td></tr>
-      </table>
+    <!-- Section 7: Tips -->
+    <div class="card full-width" style="max-width:900px;">
+      <h3 style="margin-top:0;font-size:1.1rem;">Tips for better forecasts</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.82rem;">
+        <div style="background:#f5f5f5;border-radius:8px;padding:12px;line-height:1.7;">
+          <strong>Use real data.</strong> Pull throughput from your team's last 8&ndash;12 iterations. Don't guess or average &mdash; the raw values capture natural variation.
+        </div>
+        <div style="background:#f5f5f5;border-radius:8px;padding:12px;line-height:1.7;">
+          <strong>Include zero weeks.</strong> Sprints with zero delivery (holidays, incidents, blockers) are part of your real throughput pattern. Excluding them makes forecasts too optimistic.
+        </div>
+        <div style="background:#f5f5f5;border-radius:8px;padding:12px;line-height:1.7;">
+          <strong>Keep items similar in size.</strong> Throughput-based forecasting works best when work items are roughly comparable. If they vary wildly, break them down first.
+        </div>
+        <div style="background:#f5f5f5;border-radius:8px;padding:12px;line-height:1.7;">
+          <strong>Use 85% for commitments.</strong> The sweet spot between optimism and padding. Research shows it's met ~90% of the time.
+        </div>
+        <div style="background:#f5f5f5;border-radius:8px;padding:12px;line-height:1.7;">
+          <strong>Widen scope when unsure.</strong> Don't know if it's 12 or 20 items? Set Low=12, High=20. The simulation will show you the impact of that uncertainty.
+        </div>
+        <div style="background:#f5f5f5;border-radius:8px;padding:12px;line-height:1.7;">
+          <strong>Update regularly.</strong> Re-run as you get new data and scope clarity. Forecasts converge toward reality over time.
+        </div>
+      </div>
+    </div>
 
-      <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
-
-      <h3>Tool 1: Single Feature</h3>
-      <p>Forecast one feature or epic for a single team. Two modes:</p>
-      <ul style="font-size:0.85rem;line-height:1.7;">
-        <li><strong>When will it ship?</strong> &mdash; Given scope and throughput, get a probabilistic completion date with burndown chart.</li>
-        <li><strong>How many can I finish?</strong> &mdash; Given a time horizon, see how many items you can likely deliver with buildup chart.</li>
-      </ul>
-
-      <h3>Tool 2: Multi-Feature</h3>
-      <p>Forecast multiple features sharing one team's throughput. Two modes:</p>
-      <ul style="font-size:0.85rem;line-height:1.7;">
-        <li><strong>When will it ship?</strong> &mdash; Each feature has its own scope. Throughput is distributed across active features. The WIP limit controls how many features run in parallel (lower WIP = more focus, features finish sooner individually but later overall).</li>
-        <li><strong>How many can I finish?</strong> &mdash; Capacity planning across the whole portfolio within a time horizon.</li>
-        <li><strong>Throughput modes:</strong> <em>Shared pool</em> splits one throughput stream across features by allocation %. <em>Per-feature</em> gives each feature its own independent throughput data.</li>
-      </ul>
-
-      <h3>Tool 3: Multi-Team</h3>
-      <p>Forecast a product delivered by multiple teams, with optional inter-team dependencies.</p>
-      <ul style="font-size:0.85rem;line-height:1.7;">
-        <li>Each team has its own throughput data, scope, and split rate.</li>
-        <li><strong>Dependencies:</strong> A team that depends on others cannot start until all its dependencies finish. This is simulated per trial &mdash; if Team A finishes at iteration 4 in one trial, Team C starts at iteration 5 in that trial.</li>
-        <li><strong>Product completion</strong> = the MAX of all team finish times per trial.</li>
-        <li><strong>Dependency impact:</strong> Shows how much each dependency adds to the forecast, comparing with-deps vs without-deps scenarios.</li>
-        <li><strong>Compound probability:</strong> The approximation (multiply individual probabilities) vs the exact simulation result. Use the exact number for decisions.</li>
-      </ul>
-
-      <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
-
-      <h3>Tips for better forecasts</h3>
-      <ul style="font-size:0.85rem;line-height:1.7;">
-        <li>Use <strong>real throughput data</strong> from your team's last 8&ndash;12 iterations. Don't guess.</li>
-        <li><strong>Include zero-throughput periods</strong> &mdash; sprints where nothing was delivered. These capture real-world disruptions.</li>
-        <li>Keep items <strong>roughly similar in size</strong>. If items vary wildly, the throughput distribution loses meaning.</li>
-        <li>Use <strong>85th percentile</strong> for commitments. It's the sweet spot between optimism and padding.</li>
-        <li><strong>Right-size your scope range.</strong> If you're unsure about scope, make the low-high gap wider. The simulation will show you the impact of that uncertainty.</li>
-        <li><strong>Update regularly.</strong> Re-run the forecast as you get new throughput data and scope clarity. The forecast improves over time.</li>
-      </ul>
-
-      <h3 style="margin-bottom:6px;">Methodology</h3>
-      <p style="font-size:0.82rem;color:#666;">Based on the work of Troy Magennis (<a href="https://focusedobjective.com" target="_blank">Focused Objective</a>) and Nick Brown (<a href="https://realworldagility.com" target="_blank">Real World Agility</a>). Uses the Size-Growth-Pace scope model, empirical throughput sampling, and linear interpolation percentiles.</p>
+    <!-- Section 8: Methodology -->
+    <div class="card full-width" style="max-width:900px;">
+      <h3 style="margin-top:0;font-size:1.1rem;">Methodology</h3>
+      <p style="font-size:0.85rem;color:#444;line-height:1.7;margin-bottom:12px;">This tool implements probabilistic forecasting methods developed by:</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.82rem;margin-bottom:12px;">
+        <div style="border:1px solid #e0e0e0;border-radius:8px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:4px;"><a href="https://focusedobjective.com" target="_blank" style="color:#333;text-decoration:none;border-bottom:1px solid #ccc;">Troy Magennis</a></div>
+          <div style="color:#555;font-size:0.78rem;">Focused Objective</div>
+          <div style="color:#666;line-height:1.6;margin-top:6px;">Size-Growth-Pace scope model, empirical throughput sampling (not fitted distributions), linear interpolation percentiles, data quality formula.</div>
+        </div>
+        <div style="border:1px solid #e0e0e0;border-radius:8px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:4px;"><a href="https://realworldagility.com" target="_blank" style="color:#333;text-decoration:none;border-bottom:1px solid #ccc;">Nick Brown</a></div>
+          <div style="color:#555;font-size:0.78rem;">Real World Agility</div>
+          <div style="color:#666;line-height:1.6;margin-top:6px;">Practical Monte Carlo for agile teams, 85th percentile validation across 25 teams, multi-team dependency simulation, compound probability analysis.</div>
+        </div>
+      </div>
     </div>
   </div>
 
