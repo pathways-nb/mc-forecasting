@@ -1101,12 +1101,10 @@ function updateOutcome() {
   const tp = parseThroughput('#throughput');
   const wip = parseInt(wipSlider.value);
   if (tp.length === 0) { $('#outcomeNote').innerHTML = ''; return; }
-  const avgTp = (tp.reduce((a, b) => a + b, 0) / tp.length).toFixed(1);
-  const il = getIterLen('iterLenSel');
-  const perLabel = il === 1 ? 'per week' : 'per iteration';
   const dq = dataQuality(tp.length);
   const dqColor = dq >= 85 ? 'var(--green)' : dq >= 70 ? 'var(--orange)' : 'var(--red)';
-  $('#outcomeNote').innerHTML = `WIP: <strong>${wip}</strong> &middot; Avg throughput: <strong>${avgTp}</strong> ${perLabel} &middot; Data quality: <strong style="color:${dqColor}">${dq.toFixed(0)}%</strong> (${tp.length} samples)`;
+  const dqTip = dq >= 85 ? 'Good — your sample reliably represents the team\'s throughput patterns.' : dq >= 70 ? 'Decent — consider adding more data points to improve forecast reliability.' : 'Weak — with few samples, the simulation may miss important throughput variations (e.g. holidays, incidents). Aim for 8+ iterations of history.';
+  $('#outcomeNote').innerHTML = `Data quality: <strong style="color:${dqColor}">${dq.toFixed(0)}%</strong> (${tp.length} samples) <span class="info-tip" style="position:relative;top:-1px;">?<span class="tip-text">Measures how representative your throughput sample is, using the formula (n&minus;1)/(n+1). More historical data points = better capture of real-world variation (zero-throughput weeks, holidays, incidents). Aim for 8+ iterations. ${dqTip}</span></span>`;
 }
 
 wipSlider.oninput = () => { wipVal.textContent = wipSlider.value; updateOutcome(); };
