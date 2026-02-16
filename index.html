@@ -2200,9 +2200,10 @@ function mtScenarioHtml(wd, nd, il, sd, levels) {
     }).join('');
   }
   function deltas(wComp, nComp) {
-    return levels.map(p => {
+    return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:0.72rem;font-weight:600;color:#888;"><span>Conf.</span><span>No deps</span><span>With deps</span><span>Cost</span></div>` + levels.map(p => {
       const w=percentileInt(wComp,p), n=percentileInt(nComp,p), d=w-n;
-      return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.82rem;"><span style="color:#888;">${p}%</span><span class="scenario-delta ${d>0?'positive':'neutral'}">${d>0?'+':''}${iterLabel(il,Math.abs(d))}${d>0?' later':d<0?' earlier':''}</span></div>`;
+      const fmtVal = v => `<strong>${iterLabel(il,v)}</strong>${sd?` <span style="color:#999;font-size:0.7rem">(${addWeeksToDate(sd,v,il)})</span>`:''}`;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.82rem;"><span style="color:#888;">${p}%</span><span>${fmtVal(n)}</span><span>${fmtVal(w)}</span><span class="scenario-delta ${d>0?'positive':'neutral'}">${d>0?'+':''}${iterLabel(il,Math.abs(d))}${d>0?' later':d<0?' earlier':''}</span></div>`;
     }).join('');
   }
   return `<div class="scenario-col"><h4>All Parallel (no deps)</h4>${rows(nd.prodComp)}</div><div class="scenario-col"><h4>With Dependencies (actual)</h4>${rows(wd.prodComp)}</div><div class="scenario-col" style="grid-column:1/-1;background:#fffef7;border-color:#f1c40f;"><h4 style="color:#8a6000;">Time Cost of Dependencies</h4>${deltas(wd.prodComp,nd.prodComp)}</div>`;
