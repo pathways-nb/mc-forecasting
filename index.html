@@ -136,7 +136,9 @@ select { border: 1px solid #ccc; border-radius: 6px; padding: 8px 10px; font-siz
 
 /* ── Features table ── */
 .features-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-.features-table th { text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #888; padding: 4px 8px; border-bottom: 1px solid #eee; }
+.features-table th { text-align: left; font-size: 0.72rem; text-transform: uppercase; color: #888; padding: 4px 8px; border-bottom: 1px solid #eee; overflow: visible; }
+.features-table th .info-tip .tip-text { bottom: auto; top: 24px; }
+.features-table th .info-tip .tip-text::after { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: #2c2c3a; }
 .features-table td { padding: 4px 8px; }
 .features-table input { width: 100%; }
 .features-table .remove-btn { background: none; border: none; color: var(--red); cursor: pointer; font-size: 1.1rem; padding: 0 4px; }
@@ -262,7 +264,9 @@ canvas { width: 100%; height: auto; display: block; border-radius: 6px; }
 
 /* ── Multi-Team Forecast ── */
 .teams-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.82rem; }
-.teams-table th { text-align: left; font-size: 0.7rem; text-transform: uppercase; color: #888; padding: 6px 8px; border-bottom: 2px solid #ddd; white-space: nowrap; }
+.teams-table th { text-align: left; font-size: 0.7rem; text-transform: uppercase; color: #888; padding: 6px 8px; border-bottom: 2px solid #ddd; white-space: nowrap; overflow: visible; }
+.teams-table th .info-tip .tip-text { bottom: auto; top: 24px; }
+.teams-table th .info-tip .tip-text::after { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: #2c2c3a; }
 .teams-table td { padding: 4px 6px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
 .teams-table input[type="text"], .teams-table input[type="number"] { width: 100%; }
 .teams-table .remove-btn { background: none; border: none; color: var(--red); cursor: pointer; font-size: 1.1rem; padding: 0 4px; }
